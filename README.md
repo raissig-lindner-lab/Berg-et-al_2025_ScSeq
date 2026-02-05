@@ -2,6 +2,7 @@
 <br>
 Biorxiv Link: https://www.biorxiv.org/content/10.1101/2025.11.03.686118v1
 
-*Links to the data on the GEO:*
+**Links to the data on the GEO:**
+<br>
 Single-cell RNA-sequencing files: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE307277
 RNA bulk-sequencing files: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE306756
