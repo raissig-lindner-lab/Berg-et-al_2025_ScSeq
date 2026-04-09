@@ -1,8 +1,19 @@
 ###### Gene regulatory analysis (GRN) using Mini-EX (https://github.com/VIB-PSB/MINI-EX)
 library(Seurat)
 library(tidyverse)
+library(MetBrewer)
 
-stomatal_files <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_cell_files.rds")
+stomatal_files <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_cell_files_withoutprim_STACAS.rds")
+
+DimPlot(stomatal_files)
+Idents(stomatal_files) <- "seurat_clusters"
+gc_sc_lineage <- subset(stomatal_files, idents = c(3,5,6,7,8,9,10,11,12,13,14,16))
+DimPlot(gc_sc_lineage)
+
+### For paper: mark guard cell and subsidiary cell lineage on stomatal dataset
+gc_sc_cells <- WhichCells(gc_sc_lineage)
+
+DimPlot(stomatal_files, cells.highlight = c(gc_sc_cells), sizes.highlight = 0.3)
 
 
 ################# !!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!
@@ -12,49 +23,56 @@ stomatal_files <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_cell_file
 ###### Prepare input files for MINI-EX -------------------------------------------------------------
 
 ### The expressionMatrix points to the gene-to-cell count matrix and can be extracted from the Seurat object using the command below:
-expression.matrix <- as.data.frame(as.matrix(GetAssayData(object = stomatal_files, assay = "RNA", slot = "counts")))
-write.table(expression.matrix, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/stom_matrix.tsv", sep='\t', quote = FALSE)
+expression.matrix <- as.data.frame(as.matrix(GetAssayData(object = stomatal_files, assay = "RNA", layer = "counts")))
+write.table(expression.matrix, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_matrix.tsv", sep='\t', quote = FALSE)
+
+expression.matrix <- as.data.frame(as.matrix(GetAssayData(object = gc_sc_lineage, assay = "RNA", layer = "counts")))
+write.table(expression.matrix, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_matrix_stages_sub.tsv", sep='\t', quote = FALSE)
 
 
 
 ### Find all differentially expressed markers (we only need upregulated ones)
 ## The markersOut points to the output obtained by Seurat FindAllMarkers using the command below:
-Idents(stomatal_files) <- "seurat_clusters"
-stom_markers_all <- FindAllMarkers(stomatal_files, only.pos=TRUE)
-write.table(stom_markers_all, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/stom_allMarkers.tsv", sep = "\t", quote=FALSE)
+# for subsetted GC and SC lineages
+Idents(gc_sc_lineage) <- "stages" # by stage label
+gc_sc_lineage <- RenameIdents(gc_sc_lineage, "Stage 0-2" = "0", 
+                               "Early GMCs" = "1",
+                               "Dividing GMCs" = "2",
+                               "Early GCs" = "3",
+                               "Late GCs" = "4",
+                               "SMCs" = "5",
+                               "SCs" = "6",
+                               "Inter-specialized cells" = "7")
+stom_markers_all <- FindAllMarkers(gc_sc_lineage, only.pos=TRUE)
+write.table(stom_markers_all, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_allMarkers_stages_sub.tsv", sep = "\t", quote=FALSE)
 
 
 
 ### The cellsToClusters points to a tab-separated file containing the cluster annotation for each cell in the expression matrix. It can be obtained using the Seurat command FetchData as shown below:
-cells2clusters <-FetchData(stomatal_files, vars = 'ident')
-write.table(cells2clusters,"E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/stom_cells2clusters.tsv", sep="\t",quote=FALSE,col.names = FALSE)
+cells2clusters <-FetchData(gc_sc_lineage, vars = 'ident')
 
+write.table(cells2clusters,"E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_cells2clusters_stages_sub.tsv", sep="\t",quote=FALSE,col.names = FALSE)
 
-clusterlabels <- data.frame(cluster=c("0_Cluster_0", "1_Cluster_1", 
-                                      "2_Cluster_2", "3_Cluster_3", 
-                                      "4_Cluster_4", "5_Cluster_5",             
-                                      "6_Cluster_6", "7_Cluster_7", 
-                                      "8_Cluster_8", "9_Cluster_9", 
-                                      "10_Cluster_10", "11_Cluster_11",
-                                      "12_Cluster_12", "13_Cluster_13"), 
-                            label=c("Unknown 1", "Interstomatal cells 1",
-                                    "Stage 0-1", "SMCs", 
-                                    "SCs 1", "Late GCs",
-                                    "Early GCs", "Dividing GMCs 1", 
-                                    "Interstomatal cells 2", "Early GMCs",
-                                    "Unknown 2", "Unknown 3", 
-                                    "Dividing GMCs 2", "SCs 2"))
+# for seurat clustered analysis of the GC SC subset
+clusterlabels <- data.frame(cluster=c("0", "1", 
+                                      "2", "3", 
+                                      "4", "5",             
+                                      "6", "7"), 
+                            label=c("Stage0to2", "EarlyGMCs", 
+                                    "DividingGMCs", "EarlyGCs",
+                                    "LateGCs", "SMCs", 
+                                    "SCs", "Intercells"))
+
 ### The clustersToIdentities points to a tab-separated file containing the cell type annotation for each cluster. 
 ## Optionally, this file can contain a third column which specifies a cluster index. 
 ## This index is used to indicate the position of a cluster along a known developmental trajectory (see miniexExample_identities_with_idx.tsv in the INPUTS folder), 
 ## and translates to the column index in the regulator heatmaps (example). 
 ## If this column is not specified, an automatic index is created by sorting the cluster identities alphabetically.
-clusters2Identities <- matrix(c("Unknown 1", "Interstomatal cells 1", "Stage 0-1", "SMCs", "SCs 1", "Late GCs", 
-                                "Early GCs", "Dividing GMCs 1", "Interstomatal cells 2", "Early GMCs", "Unknown 2", 
-                                "Unknown 3", "Dividing GMCs 2", "SCs 2"))
-rownames(clusters2Identities) <- 0:13
-write.table(clusters2Identities,"E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/stom_identities.tsv", sep="\t",quote=FALSE,col.names = FALSE)
+clusters2Identities <- matrix(clusterlabels$label) 
+rownames(clusters2Identities) <- 0:7 # for stage clustered input of the GC SC subset
 
+## save for stages clustered input of the subset
+write.table(clusters2Identities,"E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_identities_stages_sub.tsv", sep="\t",quote=FALSE,col.names = FALSE)
 
 
 ### The TF_list is a list of TFs which is used in the GRNBoost2 run
@@ -71,7 +89,7 @@ tfs_all_2 <- tfs_all_2[,c("BdiBd21_3", "Family")]
 tfs_all_2 <- unique(tfs_all_2)
 
 tf_all_list <- data.frame(tfs_all_2$BdiBd21_3)
-write.table(tf_all_list, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/TF_list_brachy_all.tsv", sep = "\t", quote=FALSE, col.names = FALSE, row.names = FALSE)
+write.table(tf_all_list, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/TF_list_brachy_all.tsv", sep = "\t", quote=FALSE, col.names = FALSE, row.names = FALSE)
 
 
 
@@ -141,7 +159,7 @@ for(row in 1:nrow(tf2fam2info2motif)) {
   }
 }
 
-write.table(tf2fam2info2motif, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/INPUTS/TF2fam2motif.tsv", quote = F, col.names = F, row.names = F, sep = "\t")
+write.table(tf2fam2info2motif, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/TF2fam2motif.tsv", quote = F, col.names = F, row.names = F, sep = "\t")
 
 
 
@@ -258,7 +276,6 @@ targetted <- data.frame(motif_name = NA, target_gene = NA)
 map_to_gene2 <- function(x, bd_chr_object) {
   
   print("Start piece")
-  #print(x)
   
   for(gene in 1:nrow(bd_chr_object)) {
     print(bd_chr_object[gene, "Name"])
@@ -280,11 +297,6 @@ map_to_gene2 <- function(x, bd_chr_object) {
   final_targets <- na.omit(rbind(final_targets, targetted))
   return(final_targets)
 }
-
-#test_genes <- data.frame(motif_name = NA, target_gene = NA)
-#test_genes <- parallel::mclapply(test, map_to_gene2, bd_chr_object = bd_chr2, mc.cores = 16)
-#test_genes <- as.data.frame(do.call(rbind, test_genes))
-
 
 
 target_genes_chr4 <- data.frame(motif_name = NA, target_gene = NA)
@@ -342,6 +354,15 @@ write.table(dt, "Target_genes_all.out", sep = "\t", quote = F, col.names = F, ro
 
 
 
+
+
+
+
+
+
+
+
+
 ###### MINI-EX --------------------------------------------------------------------------------------------------------------------
 
 ### Install Mini-EX from the github (https://github.com/VIB-PSB/MINI-EX), make sure you downloaded all the necessary files from there
@@ -349,9 +370,9 @@ write.table(dt, "Target_genes_all.out", sep = "\t", quote = F, col.names = F, ro
 ### and you need to download the "bin" folder, as well as "Dockerfile", "miniex.config", "miniex.nf" and "requirements.txt"
 
 ### Then you need to configure the "miniex.config" file to refer to your input files (the ones we created above), this can be done in any text editor
+### follow the instructions from the MINI-EX github: https://github.com/VIB-PSB/MINI-EX/blob/main/docs/configuration.md
 
-### Make sure that you have all the files in the right position and then run MINI-EX (example bash script I used is "MINI-EX.sh")
-### I ran it with "sbatch MINI-EX.sh", how this is executed might vary depending on what system you work on
+### Make sure that you have all the files in the right position and then run MINI-EX
 
 
 
@@ -366,7 +387,7 @@ write.table(dt, "Target_genes_all.out", sep = "\t", quote = F, col.names = F, ro
 
 ###### Work with the MINI-EX output files -------------------------------------------------------------------------------------------
 ### Which transcription factors are expressed?
-tf_info <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files/regulons/stom_TF_info_file.tsv")
+tf_info <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/stom_TF_info_file.tsv")
 
 ### How many are expressed?
 table(tf_info$isTF_expressed)
@@ -377,11 +398,10 @@ table(tf_info$isTF_expressed)
 ### In which clusters does a transcription factor act?
 library(tidyverse)
 
-tf_tg <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX with all TFs/output/regulons/stom_regulons.tsv", header = F)
+tf_tg <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/stom_regulons.tsv", header = F)
 
 one_tf <- tf_tg %>% filter(V1 == "BdiBd21-3.1G0240400")
 print(one_tf$V2)
-### for MUTE (BdiBd21-3.1G0240400) for example it says Cluster 7, 9, and 12 which is GMCs
 
 
 
@@ -419,7 +439,7 @@ write.table(go_info, "E:/Scseq_brachy_dev/GRN_analysis/GO_terms_GRN-analysis_MF.
 
 #### Dot Plot ranked regulons/TFs (like regmap output of Mini-EX)
 library(tidyverse)
-regulons <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files/regulons/stom_rankedRegulons.tsv")
+regulons <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/stom_rankedRegulons.tsv")
 regulons <- as.data.frame(regulons)
 regulons <- regulons %>% dplyr::select(-GOterm, -GOdescription, -hasTFrelevantGOterm)
 
@@ -437,32 +457,24 @@ info <- info %>% dplyr::select(-GO, -Bd21_3_id)
 regulons <- merge(regulons, info, by = "TF", all.x = T)
 
 ### write out to files
-#write_delim(regulons, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_GRAS32/regulons/stom_rankedRegulons_moreinfo.txt")
-#saveRDS(regulons, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_GRAS32/regulons/stom_rankedRegulons_moreinfo.rds")
+#write_delim(regulons, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/stom_rankedRegulons_moreinfo.txt")
 
 ### read saved files
-#regulons <- read_delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files/regulons/stom_rankedRegulons_moreinfo.txt")
-#regulons <- readRDS("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files/regulons/stom_rankedRegulons_moreinfo.rds")
+#regulons <- read_delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/stom_rankedRegulons_moreinfo.txt")
 
 ### select only the columns i need for plotting
 regulons <- regulons %>% dplyr::select(TF, cluster, isTF_DE, borda_clusterRank)
 regulons <- unique(regulons)
 
 
-clusterlabels <- data.frame(cluster=c("0_Cluster_0", "1_Cluster_1", 
-                                      "2_Cluster_2", "3_Cluster_3", 
-                                      "4_Cluster_4", "5_Cluster_5",             
-                                      "6_Cluster_6", "7_Cluster_7", 
-                                      "8_Cluster_8", "9_Cluster_9", 
-                                      "10_Cluster_10", "11_Cluster_11",
-                                      "12_Cluster_12", "13_Cluster_13"), 
-                            label=c("Unknown 1", "Interstomatal cells 1",
-                                    "Stage 0-1", "SMCs", 
-                                    "SCs 1", "Late GCs",
-                                    "Early GCs", "Dividing GMCs 1", 
-                                    "Interstomatal cells 2", "Early GMCs",
-                                    "Unknown 2", "Unknown 3", 
-                                    "Dividing GMCs 2", "SCs 2"))
+clusterlabels <- data.frame(cluster=c("Stage0to2_Cluster_0", "EarlyGMCs_Cluster_1", 
+                                      "DividingGMCs_Cluster_2", "EarlyGCs_Cluster_3", 
+                                      "LateGCs_Cluster_4", "SMCs_Cluster_5",             
+                                      "SCs_Cluster_6", "Intercells_Cluster_7"), 
+                            label=c("Stage 0-2", "Early GMCs",
+                                    "Dividing GMCs", "Early GCs", 
+                                    "Late GCs", "SMCs",
+                                    "SCs", "Inter-specialized cells"))
 rownames(clusterlabels) <- clusterlabels$cluster
 
 
@@ -470,7 +482,7 @@ rownames(clusterlabels) <- clusterlabels$cluster
 reg_topx <- data.frame(TF=NA, cluster=NA, isTF_DE=NA, borda_clusterRank=NA)
 for(clusternr in unique(regulons$cluster)) {
   new_cluster <- regulons %>% filter(cluster==clusternr)
-  new_cluster <- slice_max(new_cluster, order_by = dplyr::desc(borda_clusterRank), n = 5) # change n = for different numbers of top X transcription factors
+  new_cluster <- slice_max(new_cluster, order_by = dplyr::desc(borda_clusterRank), n = 7) # change n = for different numbers of top X transcription factors
   new_cluster$cluster <- as.character(clusterlabels[clusternr,]$label)
   
   reg_topx <- na.omit(rbind(reg_topx, new_cluster))
@@ -480,61 +492,78 @@ for(clusternr in unique(regulons$cluster)) {
 
 rownames(reg_topx) <- NULL
 
-reg_topx <- reg_topx[order(factor(reg_topx$cluster, levels = c("Stage 0-1", "Early GMCs", "Dividing GMCs 1", "Dividing GMCs 2",
-                                                                  "Early GCs", "Late GCs",
-                                                                  "SMCs", "SCs 1", "SCs 2",
-                                                                  "Interstomatal cells 1", "Interstomatal cells 2",
-                                                                  "Unknown 1", "Unknown 2", "Unknown 3"))),]
+reg_topx <- reg_topx[order(factor(reg_topx$cluster, levels = c("Stage 0-2", "Early GMCs",
+                                                               "Dividing GMCs", "Early GCs", 
+                                                               "Late GCs", "SMCs",
+                                                               "SCs", "Inter-specialized cells"))),]
 
-reg_topx %>% mutate(cluster = factor(cluster, levels = c("Stage 0-1", "Early GMCs", "Dividing GMCs 1", "Dividing GMCs 2",
-                                                          "Early GCs", "Late GCs",
-                                                          "SMCs", "SCs 1", "SCs 2",
-                                                          "Interstomatal cells 1", "Interstomatal cells 2",
-                                                          "Unknown 1", "Unknown 2", "Unknown 3"))) %>% 
+reg_topx %>% mutate(cluster = factor(cluster, levels = c("Stage 0-2", "Early GMCs",
+                                                         "Dividing GMCs", "Early GCs", 
+                                                         "Late GCs", "SMCs",
+                                                         "SCs", "Inter-specialized cells"))) %>% 
   arrange(reg_topx) %>%
   ggplot(aes(x = cluster, y = factor(TF, levels = unique(reg_topx$TF)), size = dplyr::desc(borda_clusterRank), colour = cluster))+
   geom_point()+
   guides(colour = "none",
          size = guide_legend(title = "Cluster-specific Borda rank"))+
-  #coord_flip()+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
         legend.text = element_text(size = 8),
         legend.title = element_text(size = 8),
         axis.text.y = element_text(size = 7),
         legend.position = "top")+
-  scale_colour_manual(values = c("#70C1C2", "#538EB9", "#356493", "#356493", 
+  scale_colour_manual(values = c("#78C7B8",
+                                 "#538EB9", "#356493", 
                                  "#1D4573", "#0A2E57",
-                                 "#D8D97A", "#67AFC2", "#67AFC2", 
-                                 "#8CC483", "#8CC483",
-                                 "#A8C971", "#A8C971", "#A8C971"))+
+                                 "#8CC483", "#D8D97A", 
+                                 "#67AFC2"))+
   labs(x=NULL, y=NULL)
 
 
-
-
-
-
-
-
-
+# 8 cell stage/type annotations
+"#78C7B8"  # Stage 0-2
+"#67AFC2" # Interspecialized cells 
+"#8CC483" # SMCs 
+"#D8D97A" # SCs 
+"#538EB9" # Early GMCs
+"#356493" # Dividing GMCs 
+"#1D4573" # Early GCs 
+"#0A2E57" # Late GCs
 
 
 
 
 ### Compare targetomes
 library(tidyverse)
-edge_table <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files/regulons/stom_edgeTable.tsv")
+edge_table <- read.delim("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/stom_edgeTable.tsv")
+
+## add gene info
+info <- read_delim("E:/Scseq_brachy_dev/brachy_gene_protein_info_Bd21-3_v1.2.csv", delim=";")
+info$TG <- info$Bd21_3_id
+info <- info %>% dplyr::select(-protein_id, -protein_length, -Protein_info_uniprot)
+info <- unique(info)
+
+
+
+## For gc_sc_lineage, cluster annotations
+#"Stage 0-2" = "0" 
+#"Early GMCs" = "1"
+#"Dividing GMCs" = "2"
+#"Early GCs" = "3"
+#"Late GCs" = "4"
+#"SMCs" = "5"
+#"SCs" = "6"
+#"Inter-specialized cells" = "7"
 
 ## how many genes are potential targets for one or more of the TFs in a given cluster?
-edge_table_genes <- edge_table %>% filter(cluster == "Cluster_7")
-length(unique(edge_table_genes$TG)) # 372 genes for cluster 7
+edge_table_genes <- edge_table %>% filter(cluster == "Cluster_2")
+length(unique(edge_table_genes$TG))
 
 
-### filter edge table for several TFs in one cluster
+### filter edge table for several TFs in specific clusters
 edge_table_small <- edge_table %>% filter(TF %in% c("BdiBd21-3.1G0240400", # MUTE
                                                     "BdiBd21-3.2G0300000") & # FAMA
-                                            cluster == "Cluster_7")
+                                            cluster %in% c("Cluster_2")) #dividing GMCs
 
 
 ## or not cluster-specific
@@ -543,6 +572,7 @@ edge_table_small <- edge_table %>% filter(TF %in% c("BdiBd21-3.1G0240400", # MUT
 
 
 edge_table_small <- edge_table_small %>% dplyr::select(-borda_rank, -borda_clusterRank)
+edge_table_small <- merge(edge_table_small, info, by = "TG", all.x=T)
 
 
 ## filter for one TF
@@ -551,7 +581,7 @@ FAMA <- edge_table_small %>% filter(TF == "BdiBd21-3.2G0300000")
 
 
 ## compare overlapping genes and unique genes
-overlap <- merge(MUTE, FAMA[,c(1,2,4)], by = "TG") # 311 genes
+overlap <- merge(MUTE, FAMA[,c(1,2,4)], by = "TG") # 262 genes
 
 overlap$weight_ratio <- overlap$weight.x/overlap$weight.y
 overlap$log_weight_ratio <- log(overlap$weight_ratio)
@@ -567,29 +597,25 @@ diff_corr %>%
   theme_bw()+
   labs(x = NULL, y="Log weight ratio")
 
-MUTE_up_strict <- diff_corr %>% filter(log_weight_ratio>0) # 36 genes
-FAMA_up_strict <- diff_corr %>% filter(log_weight_ratio<0) # 48 genes
+MUTE_up_strict <- diff_corr %>% filter(log_weight_ratio>0) # 38 genes
+FAMA_up_strict <- diff_corr %>% filter(log_weight_ratio<0) # 25 genes
 
 
 ## genes exclusive to one of the TFs
 exclusive <- merge(MUTE, FAMA[,c(1,2,4)], by = "TG", all=T) %>% filter(is.na(TF.x) | is.na(TF.y))
 
-table(exclusive$TF.x) # 34 genes exclusive to MUTE
-table(exclusive$TF.y) # 19 genes exclusive to FAMA
+table(exclusive$TF.x) # 13 genes exclusive to MUTE
+table(exclusive$TF.y) # 6 genes exclusive to FAMA
 
 MUTE_excl <- exclusive %>% filter(!is.na(TF.x))
 FAMA_excl <- exclusive %>% filter(!is.na(TF.y))
 
 ## merge with the genes that are rather co-expressed with one of the TFs from the overlap set
-MUTE_excl$group <- "MUTE only"
-FAMA_excl$group <- "FAMA only"
-
-MUTE_up_strict$group <- "MUTE preferred"
-FAMA_up_strict$group <- "FAMA preferred"
+MUTE_pref_strict <- rbind(MUTE_up_strict[,1:21], MUTE_excl) # filtered (log_weight_ratios < -3 and > 3)   --> 51 genes
+FAMA_pref_strict <- rbind(FAMA_up_strict[,1:21], FAMA_excl) # filtered (log_weight_ratios < -3 and > 3)   --> 31 genes
 
 
-MUTE_pref_strict <- rbind(MUTE_up_strict[,c(1:6,9)], MUTE_excl) # filtered (log_weight_ratios < -3 and > 3)   --> 70 genes
-FAMA_pref_strict <- rbind(FAMA_up_strict[,c(1:6,9)], FAMA_excl) # filtered (log_weight_ratios < -3 and > 3)   --> 67 genes
+
 
 
 
@@ -598,43 +624,92 @@ FAMA_pref_strict <- rbind(FAMA_up_strict[,c(1:6,9)], FAMA_excl) # filtered (log_
 go_terms_x <- read.table("E:/Scseq_brachy_dev/GRN_analysis/GO_terms_GRN-analysis.csv") # all GO terms
 go_terms_x <- read.table("E:/Scseq_brachy_dev/GRN_analysis/GO_terms_GRN-analysis_BP.csv") # biological process GO terms
 
-names(go_terms_x)[2] <- "TG"
-MUTE_pref_strict <- merge(MUTE_pref_strict, go_terms_x, by = "TG", all.x = T)
-FAMA_pref_strict <- merge(FAMA_pref_strict, go_terms_x, by = "TG", all.x = T)
 
-## save as table
-MUTE_vs_FAMA <- rbind(MUTE_pref_strict, FAMA_pref_strict)
-MUTE_vs_FAMA <- arrange(MUTE_vs_FAMA, desc(group))
-write.table(MUTE_vs_FAMA, "E:/Scseq_brachy_dev/GRN_analysis/targetome_MUTE_vs_FAMA.txt", row.names = F)
+## write out Table S7 of the paper
+MUTE_up_strict$group <- "MUTE preferred"
+MUTE_excl$group <- "MUTE only"
+MUTE_excl$weight_ratio <- NA
+MUTE_excl$log_weight_ratio <- NA
+FAMA_up_strict$group <- "FAMA preferred"
+FAMA_excl$group <- "FAMA only"
+FAMA_excl$weight_ratio <- NA
+FAMA_excl$log_weight_ratio <- NA
+
+table_s7 <- rbind(MUTE_up_strict, MUTE_excl)
+table_s7 <- rbind(table_s7, FAMA_up_strict)
+table_s7 <- rbind(table_s7, FAMA_excl)
+
+write.table(table_s7, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/Mini-EX_final_stomatal-files_paper-revisions/output/regulons/TableS7.txt", sep = ";")
 
 
 
 
-## GO term analysis
 plot_topGOs_comp <- function(dataset, name, n = 25, plot_only="no"){
-  if(dataset == "MUTE_pref_strict") {
-    new <- MUTE_pref_strict
+  if(dataset == "overlap"){
+    new <- overlap
   }
   
   else {
-    if(dataset == "FAMA_pref_strict") {
-      new <- FAMA_pref_strict
+    if(dataset == "exclusive") {
+      new <- exclusive
+    }
+    
+    else {
+      if(dataset == "MUTE_up_strict") {
+        new <- MUTE_up_strict
+      }
+        
+      else {
+        if(dataset == "FAMA_up_strict") {
+          new <- FAMA_up_strict
+        }
+            
+        else {
+          if(dataset == "MUTE_pref_strict") {
+            new <- MUTE_pref_strict
+          }
+            
+          else {
+            if(dataset == "FAMA_pref_strict") {
+              new <- FAMA_pref_strict
+            }
+              
+            else {
+              if(dataset == "MUTE_excl") {
+                new <- MUTE_excl
+              }
+              
+              else {
+                if(dataset == "FAMA_excl") {
+                  new <- FAMA_excl
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
   
-  new_go <- unique(new[,c("TG", "GO", "term")])
+  new$Bd21_3_id <- new$TG
+  new <- new %>% dplyr::select(-GO)
+  
+  
+  new_go <- merge(new, go_terms_x, all.x=T, by = "Bd21_3_id")
+  
+  new_go <- unique(new_go[,c("Bd21_3_id", "GO", "term")])
   
   sum_nr_go <- new_go %>% group_by(GO, term) %>% summarise(freq = length(GO))
   
   sum_nr_go <- na.omit(sum_nr_go[order(sum_nr_go$freq, decreasing = T),])
   
-  topx <- as.data.frame(sum_nr_go[1:n,])
+  top20 <- as.data.frame(sum_nr_go[1:n,])
   
   
-  topx <- topx %>% dplyr::select(-GO)
+  top20 <- top20 %>% dplyr::select(-GO)
   
-  plot <- topx %>% 
-    mutate(term = fct_reorder(term, topx$freq[order(-topx$freq)])) %>%
+  plot <- top20 %>% 
+    mutate(term = fct_reorder(term, top20$freq[order(-top20$freq)])) %>%
     ggplot(mapping = aes(x = term, y = freq)) +
     geom_col() +
     coord_flip() +
@@ -643,7 +718,7 @@ plot_topGOs_comp <- function(dataset, name, n = 25, plot_only="no"){
   
   if(plot_only == "no") {
     print(plot)
-    return(as.data.frame(topx)) 
+    return(as.data.frame(top20)) 
   }
   
   else {
@@ -652,8 +727,16 @@ plot_topGOs_comp <- function(dataset, name, n = 25, plot_only="no"){
 }
 
 ### save info into new data frame and plot
+overlap_topGOs <- plot_topGOs_comp(dataset = "overlap", name = "MUTE and FAMA \noverlapping targetome", n = 20)
+exclusive_topGOs <- plot_topGOs_comp(dataset = "exclusive", name = "MUTE and FAMA \nexclusive targetome", n = 20)
+MUTE_up_strict_topGOs <- plot_topGOs_comp(dataset = "MUTE_up_strict", name = "Shared TGs \nup in MUTE cells vs. FAMA cells, strict", n = 20)
+FAMA_up_strict_topGOs <- plot_topGOs_comp(dataset = "FAMA_up_strict", name = "Shared TGs \nup in FAMA cells vs. MUTE cells, strict", n = 20)
+MUTE_pref_strict_topGOs <- plot_topGOs_comp(dataset = "MUTE_pref_strict", name = "TGs preferentially regulated \n by MUTE vs. FAMA, strict", n = 20)
+FAMA_pref_strict_topGOs <- plot_topGOs_comp(dataset = "FAMA_pref_strict", name = "TGs preferentially regulated \n by FAMA vs. MUTE, strict", n = 20)
 MUTE_pref_strict_topGOs <- plot_topGOs_comp(dataset = "MUTE_pref_strict", name = "TGs preferentially regulated \n by MUTE vs. FAMA, strict", n = 25)
 FAMA_pref_strict_topGOs <- plot_topGOs_comp(dataset = "FAMA_pref_strict", name = "TGs preferentially regulated \n by FAMA vs. MUTE, strict", n = 25)
+MUTE_excl_topGOs <- plot_topGOs_comp(dataset = "MUTE_excl", name = "MUTE \nexclusive targetome", n = 20)
+FAMA_excl_topGOs <- plot_topGOs_comp(dataset = "FAMA_excl", name = "MUTE \nexclusive targetome", n = 20)
 
 
 ##### visualize
@@ -661,7 +744,6 @@ MUTE_pref_strict_topGOs$assay <- "MUTE_pref_strict"
 FAMA_pref_strict_topGOs$assay <- "FAMA_pref_strict"
 
 final_GOs <- rbind(MUTE_pref_strict_topGOs, FAMA_pref_strict_topGOs)
-
 
 final_GOs %>% 
   mutate(assay = factor(assay, levels = c("MUTE_pref_strict", "FAMA_pref_strict"))) %>%

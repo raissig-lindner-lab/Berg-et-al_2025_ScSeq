@@ -1,4 +1,4 @@
-### R script B. distachyon scSeq atlas
+### R script B. distachyon scSeq atlas (Berg et al. 2026)
 
 
 ###### 1. Use SoupX to filter out ambient RNA ------------------------------------------------------------------
@@ -481,44 +481,44 @@ wt2024_3_str_nod <- readRDS("wt2024_3_str_nod_genome_v1_2.rds")
 
 
 ###### 11. Merge datasets and run find variable features, scaling, PCA and UMAP on the merged data --------------------
-wt_sid_nocca <- merge(wt_str_nod, y=list(sid_str_nod, wt_strines_nod, sid_strines_nod, wt170523_str_nod, wt160523_str_nod,
+whole_data <- merge(wt_str_nod, y=list(sid_str_nod, wt_strines_nod, sid_strines_nod, wt170523_str_nod, wt160523_str_nod,
                                          wt2024_1_str_nod, wt2024_2_str_nod, wt2024_3_str_nod))
 
-wt_sid_nocca <- FindVariableFeatures(wt_sid_nocca, selection.method = "vst", nfeatures = 2000)
+whole_data <- FindVariableFeatures(whole_data, selection.method = "vst", nfeatures = 2000)
 
-wt_sid_nocca <- ScaleData(wt_sid_nocca)
+whole_data <- ScaleData(whole_data)
 
-wt_sid_nocca <- RunPCA(wt_sid_nocca, features = VariableFeatures(object = wt_sid_nocca), npcs = 100)
+whole_data <- RunPCA(whole_data, features = VariableFeatures(object = whole_data), npcs = 100)
 
-ElbowPlot(wt_sid_nocca, ndims = 50)
+ElbowPlot(whole_data, ndims = 50)
 
-wt_sid_nocca <- FindNeighbors(wt_sid_nocca, reduction = "pca", dims = 1:40)
+whole_data <- FindNeighbors(whole_data, reduction = "pca", dims = 1:40)
 
 ### If you change the resolution, more or less clusters will be found but the underlying plot will look the same
-wt_sid_nocca <- FindClusters(wt_sid_nocca, resolution = 0.8)
+whole_data <- FindClusters(whole_data, resolution = 0.8)
 
-wt_sid_nocca <- RunUMAP(wt_sid_nocca, reduction = "pca", dims = 1:40)
+whole_data <- RunUMAP(whole_data, reduction = "pca", dims = 1:40)
 
 
 ###### 12. Visualize the dataset --------------------------------------------------------------------------------------
-DimPlot(wt_sid_nocca, reduction = "umap", group.by = "origin", shuffle = T)
-DimPlot(wt_sid_nocca, reduction = "umap", group.by = "seurat_clusters", label = T)
+DimPlot(whole_data, reduction = "umap", group.by = "origin", shuffle = T)
+DimPlot(whole_data, reduction = "umap", group.by = "seurat_clusters", label = T)
 
 ### add meta data that distinguishes between WT and sid (bdmute)
 ## for soupx-filtered data
-wt_sid_nocca$genotype <- ifelse(test = wt_sid_nocca$origin %in% "sid_2021", yes = "bdmute", 
-                                no = ifelse(test = wt_sid_nocca$origin %in% "sid_2022", yes = "bdmute", no = "WT"))
+whole_data$genotype <- ifelse(test = whole_data$origin %in% "sid_2021", yes = "bdmute", 
+                                no = ifelse(test = whole_data$origin %in% "sid_2022", yes = "bdmute", no = "WT"))
 
-DimPlot(wt_sid_nocca, reduction = "umap", group.by = "genotype", shuffle = T)
+DimPlot(whole_data, reduction = "umap", group.by = "genotype", shuffle = T)
 
 
 ### add meta data that distinguishes between different tissue datasets (2021+2022+2024 (leaf dev. zone) vs 2023 (vSAM + leaf primordia))
 ## for soupx-filtered data
-wt_sid_nocca$tissue <- ifelse(test = wt_sid_nocca$origin %in% "WT_2023-05-16", yes = "SAM + leaf primordia", 
-                              no = ifelse(test = wt_sid_nocca$origin %in% "WT_2023-05-17", yes = "SAM + leaf primordia", 
+whole_data$tissue <- ifelse(test = whole_data$origin %in% "WT_2023-05-16", yes = "SAM + leaf primordia", 
+                              no = ifelse(test = whole_data$origin %in% "WT_2023-05-17", yes = "SAM + leaf primordia", 
                                           no = "leaf developmental zone"))
 
-DimPlot(wt_sid_nocca, reduction = "umap", group.by = "tissue", shuffle = T)
+DimPlot(whole_data, reduction = "umap", group.by = "tissue", shuffle = T)
 
 
 ### Add metadata on cell cycle phases
@@ -530,42 +530,42 @@ s.genes <- c("BdiBd21-3.1G1030800", "BdiBd21-3.3G0027100", "BdiBd21-3.3G0090800"
              "BdiBd21-3.3G0550700", "BdiBd21-3.4G0249100")
 
 ## Join layers to enable cell cycle scoring
-wt_sid_nocca <- JoinLayers(wt_sid_nocca)
+whole_data <- JoinLayers(whole_data)
 
 ### give each cell a score based on cell cycle genes
-wt_sid_nocca <- CellCycleScoring(wt_sid_nocca, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+whole_data <- CellCycleScoring(whole_data, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
 
-DimPlot(wt_sid_nocca, reduction = "umap", group.by = "Phase")
+DimPlot(whole_data, reduction = "umap", group.by = "Phase")
 
 
 ### save dataset
-saveRDS(wt_sid_nocca, "wt_sid_nocca_all_genome_v1_2.rds")
+saveRDS(whole_data, "whole_data_all_genome_v1_2.rds")
 
 
 ### reload the data 
-wt_sid_nocca <- readRDS("wt_sid_nocca.rds")
+whole_data <- readRDS("whole_data_all_genome_v1_2.rds")
 
 
 
 
 ###### 13. Find out some numerical parameters -----------------------------------------------------------------------
 ### Number of cells
-dim(wt_sid_nocca)
+dim(whole_data)
 # 69687 cells
 
 
 ### Mean number of UMIs
-mean(wt_sid_nocca$nCount_RNA) # 8205
+mean(whole_data$nCount_RNA) # 8205
 
 ### Median number of UMIs
-median(wt_sid_nocca$nCount_RNA) # 5673
+median(whole_data$nCount_RNA) # 5673
 
 
 ### Mean number of features/genes
-mean(wt_sid_nocca$nFeature_RNA) # 2944
+mean(whole_data$nFeature_RNA) # 2944
 
 ### Median number of features/genes
-median(wt_sid_nocca$nFeature_RNA) # 2660
+median(whole_data$nFeature_RNA) # 2660
 
 
 ### values for each of the included datasets
@@ -577,7 +577,7 @@ stats_scseq %>% group_by(ori) %>% summarise(mean_umi=mean(umi), median_umi=media
 
 ### How many genes are expressed in total?
 ## calculate number of cells expressing each individual gene
-all_genes <- Matrix::rowSums(wt_sid_nocca@assays$RNA$counts > 0)
+all_genes <- Matrix::rowSums(whole_data@assays$RNA$counts > 0)
 all_genes <- as.data.frame(all_genes)
 ## filter out genes that are not expressed by any cell
 expressed_genes <- all_genes %>% filter(all_genes>0) # 35584 out of 39068 genes are expressed in at least one cell
@@ -587,22 +587,22 @@ expressed_genes_strict <- all_genes %>% filter(all_genes>=5) # 31988 out of 3906
 
 
 ###### 14. Visualize quality control plots -------------------------------------------------------------------------
-FeaturePlot(wt_sid_nocca, features = "nFeature_RNA") 
-FeaturePlot(wt_sid_nocca, features = "nCount_RNA") 
-FeaturePlot(wt_sid_nocca, features = "percent.mt") 
-FeaturePlot(wt_sid_nocca, features = "percent.chl")
+FeaturePlot(whole_data, features = "nFeature_RNA") 
+FeaturePlot(whole_data, features = "nCount_RNA") 
+FeaturePlot(whole_data, features = "percent.mt") 
+FeaturePlot(whole_data, features = "percent.chl")
 
 
 
 ###### 15. Tabulate cell statistics -----------------------------------------------------------------------------------
 ### How many cells are in each cluster?
-table(wt_sid_nocca$seurat_clusters)
+table(whole_data$seurat_clusters)
 
 ### How many cells are in each replicate?
-table(wt_sid_nocca$origin)
+table(whole_data$origin)
 
 ### How does cluster membership vary by genotype?
-table(Idents(wt_sid_nocca), wt_sid_nocca$genotype)
+table(Idents(whole_data), whole_data$genotype)
 
 
 
@@ -610,7 +610,7 @@ table(Idents(wt_sid_nocca), wt_sid_nocca$genotype)
 ###### 16. Check marker gene expression on the dataset -------------------------------------------------------------
 ### Using a dot plot 
 ## if it says "-like" it means there were either several orthologues or it was not a 1:1 orthology
-DotPlot(wt_sid_nocca, features = c("BdiBd21-3.5G0316500" # WOX4
+DotPlot(whole_data, features = c("BdiBd21-3.5G0316500" # WOX4
                                    , "BdiBd21-3.5G0168500" # FCP1
                                    , "BdiBd21-3.1G0402200" # FON1/CLV1
                                    , "BdiBd21-3.2G0427700" # FEA2
@@ -660,10 +660,10 @@ col.min = 0) +
 
 
 ###### 17. Rename clusters with new annotations ----------------------------------------------------------------------
-Idents(wt_sid_nocca) <- "seurat_clusters"
+Idents(whole_data) <- "seurat_clusters"
 
 ### assign identities according to marker gene expression profiles
-wt_sid_nocca <- RenameIdents(wt_sid_nocca, `0` = "Mesophyll", `1` = "Mesophyll", 
+whole_data <- RenameIdents(whole_data, `0` = "Mesophyll", `1` = "Mesophyll", 
                              `2` = "Shoot apex", `3` = "Vasculature", 
                              `4` = "Epidermis", `5` = "Mesophyll", 
                              `6` = "Mesophyll", `7` = "Epidermis", 
@@ -679,35 +679,362 @@ wt_sid_nocca <- RenameIdents(wt_sid_nocca, `0` = "Mesophyll", `1` = "Mesophyll",
                              `26` = "Vasculature", `27` = "Epidermis",
                              `28` = "Mesophyll")
 
-wt_sid_nocca$intermediate <- Idents(wt_sid_nocca)
+whole_data$intermediate <- Idents(whole_data)
 
 
 ### to merge the clusters with overlapping identities between tissues
-wt_sid_nocca <- RenameIdents(wt_sid_nocca, "Epi.-Meso.-Vasc." = "Unknown",
+whole_data <- RenameIdents(whole_data, "Epi.-Meso.-Vasc." = "Unknown",
                              "Epi.-Meso." = "Unknown",
                              "Meso.-Vasc." = "Unknown")
 
-wt_sid_nocca$labels <- Idents(wt_sid_nocca) # save as metadata column
+whole_data$labels <- Idents(whole_data) # save as metadata column
 
-DimPlot(wt_sid_nocca, reduction = "umap", group.by = "labels")
-
-
+DimPlot(whole_data, reduction = "umap", group.by = "labels")
 
 
-###### 18. Identify markers ----------------------------------------------------------------------------------------
-Idents(wt_sid_nocca) <- "labels"
-
-all_markers <- FindAllMarkers(wt_sid_nocca)
-all_markers <- filter(all_markers, p_val_adj < 0.5)
-names(all_markers)[6] <- "tissue"
 
 
-## to look for markers in a specific cluster
-cluster.markers <- FindMarkers(data, ident.1 = "Epidermis", min.pct = 0.25) # markers for epidermal cluster that are expressed in at least 25% of the cells in that cluster
-cluster.markers <- filter(cluster.markers, p_val_adj < 0.5) # filter for significant markers
+###### 19. Subset Vasculature and shoot apex to better annotate cell clusters ----------------------------------------
+Idents(whole_data) <- "labels"
+
+shoot_apex <- subset(whole_data, idents = c("Shoot apex", "Vasculature"))
+
+dim(shoot_apex) # 16595 cells
+
+### Find variable features
+shoot_apex <- FindVariableFeatures(shoot_apex, selection.method = "vst", nfeatures = 2000)
+
+### Scale data
+shoot_apex <- ScaleData(shoot_apex, features = rownames(shoot_apex))
+
+### run PCA
+shoot_apex <- RunPCA(shoot_apex, features = VariableFeatures(object = shoot_apex), npcs = 30)
+
+ElbowPlot(shoot_apex, ndims = 30)
+
+### find neighbours and clusters
+shoot_apex <- FindNeighbors(shoot_apex, dims = 1:25)
+shoot_apex <- FindClusters(shoot_apex, resolution = 0.6)
+
+### run UMAP and visualise
+shoot_apex <- RunUMAP(shoot_apex, dims = 1:25)
+
+DimPlot(shoot_apex, reduction = "umap", group.by = "seurat_clusters", label = T) +
+  scale_colour_manual(values = met.brewer("Hiroshige", n=16))
+
+### check marker gene expression
+Idents(shoot_apex) <- "seurat_clusters"
+my_levels <- c(1, 3, 5, 7, 12, 15, 0, 2, 9, 11, 13, 6, 8, 10, 14, 4)
+Idents(shoot_apex) <- factor(Idents(shoot_apex), levels = my_levels)
+
+DotPlot(shoot_apex, features = c("BdiBd21-3.5G0316500" # WOX4
+                                 , "BdiBd21-3.1G0402200" # FON1/CLV1
+                                 , "BdiBd21-3.2G0427700" # FEA2
+                                 , "BdiBd21-3.2G0010000" # FEA3
+                                 , "BdiBd21-3.1G0571300" # FEA4
+                                 , "BdiBd21-3.5G0168500" # FCP1
+                                 , "BdiBd21-3.1G0135700" # KN1
+                                 , "BdiBd21-3.1G0773000" # KNAT1-like1
+                                 , "BdiBd21-3.1G0942300" # CRC
+                                 , "BdiBd21-3.1G0588300" # PIN1a
+                                 , "BdiBd21-3.2G0231400" # TED4-like2 procambium
+                                 , "BdiBd21-3.1G0348000" # TMO6-like
+                                 , "BdiBd21-3.1G1023300" # VND-like
+                                 , "BdiBd21-3.2G0501500" # XCP1-like
+                                 , "BdiBd21-3.3G0071200" # APL
+                                 , "BdiBd21-3.2G0203400" # SLAH2
+                                 , "BdiBd21-3.3G0204900" # PDF2-like 
+                                 , "BdiBd21-3.2G0082000" # PDF1
+                                 , "BdiBd21-3.2G0587500" # WOX9C-like1
+                                 , "BdiBd21-3.4G0439300" # LHCA6
+                                 , "BdiBd21-3.2G0749400" # STOMAGEN-1
+), split.by = "annotations", # for old data, "labels"
+cols = c("#5a5a83", "#8282aa", "#9d9dc7", "#c9c9dd", "#e3aba7", "#b1615c", "#d88782", "lightgrey")) +
+  scale_x_discrete(labels=c("BdiBd21-3.5G0316500" = "BdWOX4",
+                            "BdiBd21-3.1G0402200" = "BdCLV1", 
+                            "BdiBd21-3.2G0427700" = "BdFEA2",
+                            "BdiBd21-3.2G0010000" = "BdFEA3", 
+                            "BdiBd21-3.1G0571300" = "BdFEA4", 
+                            "BdiBd21-3.5G0168500" = "BdFCP1",
+                            "BdiBd21-3.1G0135700" = "BdKN1", 
+                            "BdiBd21-3.1G0773000" = "BdKNAT1-like1",
+                            "BdiBd21-3.1G0942300" = "BdCRC",
+                            "BdiBd21-3.1G0588300" = "BdPIN1a",
+                            "BdiBd21-3.2G0231400" = "BdTED4-like2",
+                            "BdiBd21-3.1G0348000" = "BdTMO6-like",
+                            "BdiBd21-3.1G1023300" = "BdVND-like1",
+                            "BdiBd21-3.2G0501500" = "BdXCP1-like",
+                            "BdiBd21-3.3G0071200" = "BdAPL",
+                            "BdiBd21-3.2G0203400" = "BdSLAH2",
+                            "BdiBd21-3.3G0204900" = "BdPDF2-like",
+                            "BdiBd21-3.2G0082000" = "BdPDF1",
+                            "BdiBd21-3.2G0587500" = "BdWOX9C-like1",
+                            "BdiBd21-3.4G0439300" = "BdLHCA6",
+                            "BdiBd21-3.2G0749400" = "BdSTOMAGEN-1")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.text = element_text(size = 8)) +
+  labs(y = NULL, x = NULL)
+
+### Label clusters with tissue type
+shoot_apex <- RenameIdents(shoot_apex, `0` = "Primordium", `1` = "SAM", 
+                           `2` = "Primordium", `3` = "SAM", 
+                           `4` = "Unclear", `5` = "SAM/Vasculature", 
+                           `6` = "Vasculature", `7` = "SAM/Vasculature", 
+                           `8` = "Vasculature", `9` = "Primordium", 
+                           `10` = "Mesophyll", `11` = "Procambium", 
+                           `12` = "SAM/Vasculature", `13` = "Procambium", 
+                           `14` = "Epidermis", `15` = "SAM/Vasculature")
+
+shoot_apex$annotations <- Idents(shoot_apex)
+
+DimPlot(shoot_apex, group.by = "annotations") +
+  scale_colour_manual(values = c("#9d9dc7", "#5a5a83", "lightgrey", "#8282aa", "#e3aba7", "#b1615c", "#c9c9dd", "#d88782"))
 
 
-write.table(all_markers, "E:/Scseq_brachy_dev/markers/all/all_markers.txt", row.names = F)
+### Transfer cell type annotations to the whole dataset
+SAM_cells <- WhichCells(shoot_apex, idents = c("SAM"))
+SAM_vasc_cells <- WhichCells(shoot_apex, idents = c("SAM/Vasculature"))
+vasc_cells <- WhichCells(shoot_apex, idents = c("Vasculature"))
+epi_cells <- WhichCells(shoot_apex, idents = c("Epidermis"))
+meso_cells <- WhichCells(shoot_apex, idents = c("Mesophyll"))
+prim_cells <- WhichCells(shoot_apex, idents = c("Primordium"))
+proc_cells <- WhichCells(shoot_apex, idents = c("Procambium"))
+unc_cells <- WhichCells(shoot_apex, idents = c("Unclear"))
+
+Idents(whole_data) <- "labels"
+
+Idents(whole_data, WhichCells(object = whole_data, cells = SAM_cells, slot = 'data')) <-"SAM"
+Idents(whole_data, WhichCells(object = whole_data, cells = SAM_vasc_cells, slot = 'data')) <-"SAM/Vasculature"
+Idents(whole_data, WhichCells(object = whole_data, cells = vasc_cells, slot = 'data')) <-"Vasculature"
+Idents(whole_data, WhichCells(object = whole_data, cells = epi_cells, slot = 'data')) <-"Epidermis"
+Idents(whole_data, WhichCells(object = whole_data, cells = meso_cells, slot = 'data')) <-"Mesophyll"
+Idents(whole_data, WhichCells(object = whole_data, cells = prim_cells, slot = 'data')) <-"Primordium"
+Idents(whole_data, WhichCells(object = whole_data, cells = proc_cells, slot = 'data')) <-"Procambium"
+Idents(whole_data, WhichCells(object = whole_data, cells = unc_cells, slot = 'data')) <-NA # labeling as NA is important so that STACAS does not recognize it as a separate cell type
+
+whole_data <- RenameIdents(whole_data, "Unknown" = NA)
+
+whole_data$newlabels <- Idents(whole_data)
+
+DimPlot(whole_data) + scale_colour_manual(values = c("#c9c9dd", "#9d9dc7", "#b1615c", "#d88782", "#e3aba7", "#8282aa", "#5a5a83"))
+
+
+
+
+
+
+###### 20. Semi-supervised integration with STACAS (https://pmc.ncbi.nlm.nih.gov/articles/PMC10825117/) ------------
+DimPlot(whole_data, group.by = "newlabels")
+
+whole_data <- SplitObject(whole_data, split.by = "origin")
+
+whole_data <- Run.STACAS(whole_data, dims = 1:40, anchor.features = 2000, cell.labels = "newlabels")
+
+whole_data <- RunUMAP(whole_data, dims = 1:40)
+
+DefaultAssay(whole_data) <- "integrated"
+whole_data <- FindNeighbors(whole_data, dims = 1:40)
+whole_data <- FindClusters(whole_data, resolution = 1)
+
+DimPlot(whole_data, reduction = "umap", group.by = "seurat_clusters", label = T) +
+  scale_colour_manual(values = c(
+    "#F7AB58", "#E76254", "#ED8448", "#FFD47C", "#EB794C", #0,1,2,3,4
+    "#3B6D98", "#F9B65F", "#5C9DB9", "#F2984E", "#F4A153", #5,6,7,8,9
+    "#F9E5B9", "#E0E2C5", "#7CC2D7", "#4B84A6", "#F08F49", #10,11,12,13,14
+    "#E96D50", "#5390AE", "#8DCBDA", "#65AAC5", "#FFE1A6", #15,16,17,18,19
+    "#9DD4DD", "#AFDCDD", "#C8DFD1", "#FBC166", "#FFDA91", #20,21,22,23,24
+    "#1E466E", "#2C5984", "#33628F", "#FECC6C", "#43799F", #25,26,27,28,29
+    "#254F79", "#6EB7D1"  #30,31
+  ))
+
+DimPlot(whole_data, reduction = "umap", group.by = "origin", shuffle = T, alpha = 0.8) # how is data separated between original datasets
+
+DimPlot(whole_data, reduction = "umap", group.by = "tissue", shuffle = T, alpha = 0.8) +
+  theme(legend.position = "bottom") # how is data separated between tissue datasets
+
+DimPlot(whole_data, reduction = "umap", group.by = "Phase")  + # show cell cycling phases
+  theme(legend.position = "bottom") +
+  scale_colour_manual(values = met.brewer("Derain", n = 4))
+
+
+### assign tissue identity to STACAS integrated dataset
+Idents(whole_data) <- "seurat_clusters"
+whole_data <- RenameIdents(whole_data, `0` = "Mesophyll", `1` = "Mesophyll", 
+                           `2` = "Mesophyll", `3` = "SAM/Primordium", 
+                           `4` = "Mesophyll", `5` = "Epidermis", 
+                           `6` = "Unclear", `7` = "Epidermis", 
+                           `8` = "Mesophyll", `9` = "Mesophyll", 
+                           `10` = "Vasculature", `11` = "SAM/Vasculature", 
+                           `12` = "Epidermis", `13` = "Epidermis", 
+                           `14` = "Mesophyll", `15` = "Mesophyll",
+                           `16` = "Unclear", `17` = "Vasculature",
+                           `18` = "Epidermis", `19` = "Vasculature", # 19 is Procambium
+                           `20` = "Vasculature", `21` = "SAM/Vasculature",
+                           `22` = "SAM/Vasculature", `23` = "Unclear",
+                           `24` = "SAM/Primordium", `25` = "Epidermis",
+                           `26` = "Epidermis", `27` = "Epidermis",
+                           `28` = "SAM/Primordium", `29` = "Epidermis",
+                           `30` = "Epidermis", `31` = "Epidermis")
+
+whole_data$annotated <- Idents(whole_data)
+
+Idents(whole_data) <- "annotated"
+
+Idents(whole_data) <- factor(Idents(whole_data), levels = c("SAM/Vasculature", "SAM/Primordium", "Vasculature", "Epidermis", "Mesophyll", "Unclear"))
+DimPlot(whole_data) + 
+  scale_colour_manual(values = c("#454a74", "#97c684", "#efc86e", "#808fe1", "#6f9969", "lightgrey"))
+
+
+###### assign tissue identity to STACAS integrated dataset with more details
+Idents(whole_data) <- "seurat_clusters"
+whole_data <- RenameIdents(whole_data, `0` = "Mesophyll", `1` = "Mesophyll", 
+                           `2` = "Mesophyll", `3` = "SAM/Primordium", 
+                           `4` = "Mesophyll", `5` = "Epidermis", 
+                           `6` = "Unclear", `7` = "Epidermis", 
+                           `8` = "Mesophyll", `9` = "Mesophyll", 
+                           `10` = "Bundle sheath cells", `11` = "SAM/Xylem", 
+                           `12` = "Epidermis", `13` = "Epidermis", 
+                           `14` = "Mesophyll", `15` = "Mesophyll",
+                           `16` = "Unclear", `17` = "Phloem",
+                           `18` = "Epidermis", `19` = "Procambium",
+                           `20` = "Phloem", `21` = "SAM/Vasculature",
+                           `22` = "SAM/Vasculature", `23` = "Unclear",
+                           `24` = "SAM/Primordium", `25` = "Epidermis",
+                           `26` = "Epidermis", `27` = "Epidermis",
+                           `28` = "SAM/Primordium", `29` = "Epidermis")
+
+DimPlot(whole_data) +
+  scale_colour_manual(values = c("#86C592", "#D8D97A", "#A8C971", "lightgrey", "#70C1C2", "#5D9EC1", "#3E709E", "#204877", "#0A2E57"))
+
+### Quality control
+par(mfrow=c(3,2))
+p1 <- DimPlot(whole_data, reduction = "umap", group.by = "seurat_clusters")
+p2 <- FeaturePlot(whole_data, features = "nFeature_RNA") 
+p3 <- FeaturePlot(whole_data, features = "nCount_RNA") 
+p4 <- FeaturePlot(whole_data, features = "percent.mt") 
+p5 <- FeaturePlot(whole_data, features = "percent.chl")
+p6 <- DimPlot(whole_data, reduction = "umap", group.by = "tissue", shuffle = T) + theme(legend.position = "bottom")
+p1+p6+p2+p3+p4+p5
+
+### Save object
+saveRDS(whole_data, "E:/Scseq_brachy_dev/R_data_objects/whole_data_STACAS.rds")
+
+
+
+
+
+
+###### 21. Link GRAS32 with mitotically active cells ------------------------------------------------------------
+doi <- whole_data
+doi <- AddModuleScore(doi, features = list("BdiBd21-3.1G0657800"), nbin = 2, name = "gene_expression")
+
+### categorise cells into cells that have and don't have the genes of interest expressed
+doi$goi_score <- ifelse(test = doi$gene_expression1 > 0, yes = "gene",
+                        no = "not expressed")
+
+doi$goi_score <- ifelse(test = doi$gene_expression1 > 1, yes = "gene",
+                        no = "not expressed")
+
+doi$goi_score <- ifelse(test = doi$gene_expression1 > 2, yes = "gene",
+                        no = "not expressed")
+
+doi$goi_score <- ifelse(test = doi$gene_expression1 > 2.5, yes = "gene",
+                        no = "not expressed")
+
+exp_table <- table(doi$goi_score, doi$Phase)
+exp_table
+## threshold expression > 0
+#                 G1   G2M     S Undecided
+#gene           1143  3870  1477        45
+#not expressed 24793 13174 23504      1681
+
+## threshold expression > 1
+#                 G1   G2M     S Undecided
+#gene            326  1721   499        40
+#not expressed 25610 15323 24482      1686
+
+# threshold expression > 2
+#                 G1   G2M     S Undecided
+#gene             23   314    53         7
+#not expressed 25913 16730 24928      1719
+
+#threshold expression > 2.5
+#                 G1   G2M     S Undecided
+#gene              5    83    10         1
+#not expressed 25931 16961 24971      1725
+
+
+## what percentage of cells expressing BdGRAS32 are mitotically active cells (G2M)
+3870/(1143+1477+45+3870)
+## --> 59% of BdGRAS-positive cells were categorised as G2M for expression threshold > 0
+
+1721/(326+499+40+1721)
+## --> 67% of BdGRAS-positive cells were categorised as G2M for expression threshold > 1
+
+314/(23+53+7+314)
+## --> 79% of BdGRAS-positive cells were categorised as G2M for expression threshold > 2
+
+83/(5+10+1+83)
+## --> 84% of BdGRAS-positive cells were categorised as G2M for expression threshold > 2.5
+
+
+
+
+
+
+
+
+###### 22. Identify markers ----------------------------------------------------------------------------------------
+## Differentially expressed genes in mitotically active cells (G2M phase)
+Idents(whole_data) <- "Phase"
+g2mphase.markers <- FindMarkers(whole_data, ident.1 = "G2M")
+
+# filter for significant marker that are upregulated in G2M cells
+g2mphase.markers <- filter(g2mphase.markers, p_val_adj < 0.5 & avg_log2FC > 0)
+
+# filter for transcription factors
+TFs <- read.table("E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/TF_list_brachy_all.tsv", sep = "\t")
+TFs <- as.vector(TFs$V1)
+
+g2mphase_tfs <- filter(g2mphase.markers, rownames(g2mphase.markers) %in% TFs)
+
+write.table(g2mphase_tfs, "E:/Scseq_brachy_dev/markers/revisions_paper/all_G2M_TFs.txt", sep = ";", col.names = T)
+
+gras32 <- filter(g2mphase_tfs, rownames(g2mphase_tfs) == "BdiBd21-3.1G0657800")
+
+
+## Differentially expressed genes in all clusters
+setwd("E:/Scseq_brachy_dev/markers/revisions_paper/")
+Idents(whole_data) <- "seurat_clusters"
+all.markers <- FindAllMarkers(whole_data, min.pct = 0.25)
+
+
+celltypes <- data.frame(cluster = c(0,1:31), celltype = c("Mesophyll", "Mesophyll", 
+                                                          "Mesophyll", "SAM/Primordium", 
+                                                          "Mesophyll", "Epidermis", 
+                                                          "Unclear", "Epidermis", 
+                                                          "Mesophyll", "Mesophyll", 
+                                                          "Vasculature", "SAM/Vasculature", 
+                                                          "Epidermis", "Epidermis", 
+                                                          "Mesophyll", "Mesophyll",
+                                                          "Unclear", "Vasculature",
+                                                          "Epidermis", "Vasculature", 
+                                                          "Vasculature", "SAM/Vasculature",
+                                                          "SAM/Vasculature", "Unclear",
+                                                          "SAM/Primordium", "Epidermis",
+                                                          "Epidermis", "Epidermis",
+                                                          "SAM/Primordium", "Epidermis",
+                                                          "Epidermis", "Epidermis"))
+
+all_markers_info <- merge(all.markers, celltypes, by="cluster", all.x=T)
+
+
+all_markers_info_strict <- filter(all_markers_info, p_val_adj < 0.5)
+
+
+
+
+write.table(all_markers_info_strict[,c(7,1,8,2:6)], "E:/Scseq_brachy_dev/markers/revisions_paper/markers_all_clusters.txt", sep=";", row.names = F)
 
 
 
@@ -718,110 +1045,126 @@ write.table(all_markers, "E:/Scseq_brachy_dev/markers/all/all_markers.txt", row.
 
 #---------------------------------------------------------------------------------------------------------------------
 
-###### 19. Subset epidermal dataset ---------------------------------------------------------------------------------
-Idents(wt_sid_nocca) <- "intermediate"
-epidermis <- subset(wt_sid_nocca, idents = c("Epidermis", "Shoot apex", "Epi.-Meso.-Vasc.", "Epi.-Meso."))
+###### 23. Subset epidermal dataset ---------------------------------------------------------------------------------
+DefaultAssay(whole_data) <- "integrated"
+Idents(whole_data) <- "annotated"
 
-dim(epidermis) # 24926 cells before iterative filtering
+epidermis <- subset(whole_data, idents = c("Epidermis"))
 
+dim(epidermis)
+## contains 15034 cells
 
-### 19.1 Find variable features
-epidermis <- FindVariableFeatures(epidermis, selection.method = "vst", nfeatures = 2000)
-
-### 19.2 Scale data
+### Scale data
 epidermis <- ScaleData(epidermis, features = rownames(epidermis))
 
-### 19.3 run PCA
+### run PCA
 epidermis <- RunPCA(epidermis, features = VariableFeatures(object = epidermis), npcs = 30)
 
 ElbowPlot(epidermis, ndims = 30)
 
-### 19.4 find neighbours and clusters 
+### find neighbours and clusters 
 epidermis <- FindNeighbors(epidermis, dims = 1:25)
-epidermis <- FindClusters(epidermis, resolution = 0.8)
+epidermis <- FindClusters(epidermis, resolution = 1)
 
-### 19.5. run UMAP and visualise 
+### run UMAP and visualise 
 epidermis <- RunUMAP(epidermis, dims = 1:25)
-
-DimPlot(epidermis)
-
-
-### 19.6. take out clusters with mixed tissue identity (e.g. also mesophyllar or vascular markers) 
-epidermis <- RenameIdents(epidermis, `0` = "Mixed tissues", `1` = "Stem cells", 
-                          `2` = "Silica cells", `3` = "Unknown", 
-                          `4` = "Prickle hair cells", `5` = "Stem cells", 
-                          `6` = "Unknown", `7` = "Mixed tissues", 
-                          `8` = "Mixed tissues", `9` = "Stem cells", 
-                          `10` = "Stem cells", `11` = "Unknown", 
-                          `12` = "Prickle hair cells", `13` = "Stomatal lineage",
-                          `14` = "Stem cells", `15` = "Prickle hair cells",
-                          `16` = "Stomatal lineage", `17` = "Stomatal lineage")
-DimPlot(epidermis)
-
-epidermis <- subset(epidermis, idents = c("Stem cells", "Prickle hair cells", "Stomatal lineage", "Unknown", "Silica cells"))
-dim(epidermis) # now 18797 cells
-
-epidermis <- FindVariableFeatures(epidermis, selection.method = "vst", nfeatures = 2000)
-epidermis <- ScaleData(epidermis, features = rownames(epidermis))
-epidermis <- RunPCA(epidermis, features = VariableFeatures(object = epidermis), npcs = 30)
-
-epidermis <- FindNeighbors(epidermis, dims = 1:25)
-epidermis <- FindClusters(epidermis, resolution = 0.8)
-epidermis <- RunUMAP(epidermis, dims = 1:25)
-DimPlot(epidermis)
-
-
-### 19.7. additionally take out some of the shoot apical clusters
-epidermis <- subset(epidermis, idents = c(0:2, 4:8, 10:17, 19))
-dim(epidermis) # now 16108 cells
-
-epidermis <- FindVariableFeatures(epidermis, selection.method = "vst", nfeatures = 2000)
-epidermis <- ScaleData(epidermis, features = rownames(epidermis))
-epidermis <- RunPCA(epidermis, features = VariableFeatures(object = epidermis), npcs = 30)
-
-epidermis <- FindNeighbors(epidermis, dims = 1:25)
-epidermis <- FindClusters(epidermis, resolution = 0.8)
-epidermis <- RunUMAP(epidermis, dims = 1:25)
-
-DimPlot(epidermis) # this is the final epidermal subset used in the publication
-
-
-### 19.8. visualize
-epidermis <- RenameIdents(epidermis, `0` = "Silica cell lineage", `1` = "Silica cell lineage", 
-                          `2` = "Stomatal lineage", `3` = "Stem cells", 
-                          `4` = "Unknown", `5` = "Stem cells", 
-                          `6` = "Hair cell lineage", `7` = "Hair cell lineage", 
-                          `8` = "Stomatal lineage", `9` = "Stomatal lineage", 
-                          `10` = "Hair cell lineage", `11` = "Stage 0-1", 
-                          `12` = "Hair cell lineage", `13` = "Hair cell lineage",
-                          `14` = "Stomatal lineage", `15` = "Hair cell lineage",
-                          `16` = "Stomatal lineage", `17` = "Stomatal lineage",
-                          `18` = "Silica cell lineage", `19` = "Hair cell lineage")
-
-epidermis$celltypes <- Idents(epidermis)
-
-DimPlot(epidermis, label = F, shuffle = T, group.by = "celltypes") +
-  scale_colour_manual(values = c("#574571", "#7fa074", "#c1d1aa", "lightgrey", "#2c4b27", "#b695bc")) +
-  theme(legend.position = "bottom") +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
-
 
 DimPlot(epidermis, reduction = "umap", group.by = "seurat_clusters", label = T) + 
-  scale_colour_manual(values = met.brewer("Hiroshige", n=20))
-
+  scale_colour_manual(values = met.brewer("Hiroshige", n=25))
 
 DimPlot(epidermis, reduction = "umap", group.by = "Phase") + theme(legend.position = "bottom") +
   scale_colour_manual(values = met.brewer("Derain", n=4))
 
+DimPlot(epidermis, reduction = "umap", group.by = "tissue", order = T) + theme(legend.position = "bottom")
 
-### 19.9. mark epidermal cells on whole dataset
+
+### For paper: mark epidermal cells on whole dataset
 epi_cells <- WhichCells(epidermis)
-DimPlot(wt_sid_nocca, cells.highlight = c(epi_cells), sizes.highlight = 0.3)
+
+test <- whole_data
+Idents(test, WhichCells(object = test, cells = epi_cells, slot = 'data')) <-"Epidermal subset"
+
+DimPlot(test, cells.highlight = c(epi_cells), sizes.highlight = 0.3)
+
+### mark HC lineage on epidermal dataset
+HCs <- WhichCells(epidermis, idents = c("Stage 0-2", "Hair cell lineage"))
+
+test <- epidermis
+Idents(test, WhichCells(object = test, cells = HCs, slot = 'data')) <-"Hair cell lineage"
+
+DimPlot(test, cells.highlight = c(HCs), sizes.highlight = 0.3)
 
 
-### 19.10. mark HC lineage on epidermal dataset
-HCs <- WhichCells(epidermis, idents = c("Stage 0-1", "Hair cell lineage"))
-DimPlot(epidermis, cells.highlight = c(HCs), sizes.highlight = 0.3)
+### mark stomatal lineage on epidermal dataset
+sto <- WhichCells(epidermis, idents = c("Stage 0-2", "Inter cells", "Stomatal lineage"))
+
+test <- epidermis
+Idents(test, WhichCells(object = test, cells = sto, slot = 'data')) <-"Stomatal lineage"
+
+DimPlot(test, cells.highlight = c(sto), sizes.highlight = 0.3)
+
+
+### Quality control
+par(mfrow=c(3,2))
+p1 <- DimPlot(epidermis, reduction = "umap")
+p6 <- DimPlot(epidermis, reduction = "umap", group.by = "tissue") + theme(legend.position = "bottom")
+p2 <- FeaturePlot(epidermis, features = "nFeature_RNA") 
+p3 <- FeaturePlot(epidermis, features = "nCount_RNA") 
+p4 <- FeaturePlot(epidermis, features = "percent.mt") 
+p5 <- FeaturePlot(epidermis, features = "percent.chl")
+p1+p6+p2+p3+p4+p5
+
+
+### Annotate clusters
+epidermis <- RenameIdents(epidermis, `0` = "Silica cell lineage", `1` = "Stage 0-2", 
+                          `2` = "Hair cell lineage", `3` = "Stage 0-2", 
+                          `4` = "Inter cells", `5` = "Stage 0-2", 
+                          `6` = "Silica cell lineage", `7` = "Inter cells", 
+                          `8` = "Hair cell lineage", `9` = "Silica cell lineage", 
+                          `10` = "Stomatal lineage", `11` = "Stage 0-2", 
+                          `12` = "Stage 0-2", `13` = "Stomatal lineage",
+                          `14` = "Hair cell lineage", `15` = "Unclear",
+                          `16` = "Unclear", `17` = "Inter cells",
+                          `18` = "Hair cell lineage", `19` = "Stomatal lineage",
+                          `20` = "Stomatal lineage", `21` = "Silica cell lineage",
+                          `22` = "Stomatal lineage", `23` = "Hair cell lineage",
+                          `24` = "Hair cell lineage")
+
+epidermis$celltypes <- Idents(epidermis)
+
+DimPlot(epidermis, label = F, shuffle = T) +
+  scale_colour_manual(values = c("lightgrey", "#c1d1aa", "#7fa074", "#574571", "#2c4b27", "#b695bc")) +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+
+
+### Find markers for every epidermis cluster compared to all remaining cells, report only the positive ones:
+Idents(epidermis) <- "seurat_clusters"
+epidermis.markers <- FindAllMarkers(epidermis, min.pct = 0.25)
+
+celltypes <- data.frame(cluster = c(0,1:24), celltype = c("Silica cell lineage", "Stage 0-2", 
+                                                          "Hair cell lineage", "Stage 0-2", 
+                                                          "Stage 0-2", "Stage 0-2", 
+                                                          "Silica cell lineage", "Inter-specialized cells", 
+                                                          "Hair cell lineage", "Silica cell lineage", 
+                                                          "Stomatal lineage", "Stage 0-2", 
+                                                          "Stage 0-2", "Stomatal lineage",
+                                                          "Hair cell lineage", "Unclear",
+                                                          "Unclear", "Stage 0-2",
+                                                          "Hair cell lineage", "Stomatal lineage",
+                                                          "Stomatal lineage", "Silica cell lineage",
+                                                          "Stomatal lineage", "Hair cell lineage",
+                                                          "Hair cell lineage"))
+
+epidermis_markers_info <- merge(epidermis.markers, celltypes, by="cluster", all.x=T)
+
+epidermis_markers_info_strict <- filter(epidermis_markers_info, p_val_adj < 0.5)
+
+write.table(epidermis_markers_info_strict[,c(7,1,8,2:6)], "E:/Scseq_brachy_dev/markers/revisions_paper/markers_epidermis.txt", sep=";", row.names = F)
+
+
+
+
 
 
 
@@ -835,35 +1178,34 @@ DimPlot(epidermis, cells.highlight = c(HCs), sizes.highlight = 0.3)
 
 #-------------------------------------------------------------------------------------------------
 
-###### 20. Subset stomatal lineage subset ---------------------------------------------------------
-Idents(epidermis) <- "seurat_clusters"
+###### 24. Subset stomatal lineage subset ---------------------------------------------------------
+Idents(epidermis) <- "celltypes"
+stomatal_files <- subset(epidermis, idents = c("Stomatal lineage", "Inter cells", "Stage 0-2"))
 
-stomatal_files <- subset(epidermis, idents = c(2, 8, 9, 11, 14, 16, 17))
-dim(stomatal_files) # 4675 cells
+dim(stomatal_files)
+## 8406
 
-### 20.1. Find variable features 
-stomatal_files <- FindVariableFeatures(stomatal_files, selection.method = "vst", nfeatures = 2000)
+DefaultAssay(stomatal_files) <- "integrated"
 
-### 20.2. Scale data
+### Scale data
 stomatal_files <- ScaleData(stomatal_files, features = rownames(stomatal_files))
 
-### 20.3. run PCA
+### run PCA
 stomatal_files <- RunPCA(stomatal_files, features = VariableFeatures(object = stomatal_files), npcs = 30)
 
 ElbowPlot(stomatal_files, ndims = 30)
 
-### 20.4. find neighbours and clusters
+### find neighbours and clusters
 stomatal_files <- FindNeighbors(stomatal_files, dims = 1:25)
 stomatal_files <- FindClusters(stomatal_files, resolution = 0.8)
 
-### 20.5. run UMAP and visualise
+### run UMAP and visualise
 stomatal_files <- RunUMAP(stomatal_files, dims = 1:25)
 
 DimPlot(stomatal_files, reduction = "umap", group.by = "seurat_clusters", label = T) + 
-  scale_colour_manual(values = met.brewer("Hiroshige", n=14))
+  scale_colour_manual(values = met.brewer("Hiroshige", n=17))
 
-
-## label datasets according to whether that year had a sid dataset (2021, 2022) or not (2023, 2024)
+### label datasets according to whether that year had a sid dataset (2021, 2022) or not (2023, 2024)
 stomatal_files$year <- ifelse(test = stomatal_files$origin %in% "sid_2021", yes = "2021", 
                               no = ifelse(test = stomatal_files$origin %in% "WT_2021", yes = "2021", 
                                           no = ifelse(test = stomatal_files$origin %in% "sid_2022", yes = "2022",
@@ -877,16 +1219,81 @@ stomatal_files$sid_included <- ifelse(test = stomatal_files$year %in% "2021", ye
 DimPlot(stomatal_files, reduction = "umap", split.by = "sid_included", group.by = "genotype", shuffle = T) +
   scale_colour_manual(values = rev(met.brewer("Hokusai3", n=2)))
 
-
 DimPlot(stomatal_files, reduction = "umap", group.by = "Phase") + theme(legend.position = "bottom") +
   scale_colour_manual(values = met.brewer("Derain", n=4))
 
-
-### 20.6. mark stomatal lineage cells on epidermal subset
+### mark stomatal lineage cells on epidermal subset
 stom <- WhichCells(stomatal_files)
 DimPlot(epidermis, cells.highlight = c(stom), sizes.highlight = 0.3)
 
+### mark guard cell lineage on stomatal dataset
+gc_cells <- WhichCells(gc_lineage)
 
+DimPlot(stomatal_files, cells.highlight = c(gc_cells), sizes.highlight = 0.3)
+
+
+### Annotate clusters
+stomatal_files <- RenameIdents(stomatal_files, `0` = "Stage 0-2", `1` = "Stage 0-2", 
+                               `2` = "Stage 0-2", `3` = "Inter-specialized cells", 
+                               `4` = "Stage 0-2", `5` = "SCs", 
+                               `6` = "SMCs", `7` = "Early GCs", 
+                               `8` = "SMCs", `9` = "Early GMCs", 
+                               `10` = "Inter-specialized cells", `11` = "Stage 0-2", 
+                               `12` = "Late GCs", `13` = "Stage 0-2",
+                               `14` = "Dividing GMCs", `15` = "Stage 0-2",
+                               `16` = "Dividing GMCs")
+
+stomatal_files$stages <- Idents(stomatal_files)
+
+DimPlot(stomatal_files, label = F, shuffle = T, order = rev(c("Stage 0-2", "Inter-specialized cells",  
+                                                              "SMCs", "SCs", "Early GMCs", 
+                                                              "Dividing GMCs", "Early GCs", "Late GCs"))) +
+  scale_colour_manual(values = c("#78C7B8", "#67AFC2", "#8CC483", 
+                                 "#D8D97A", "#538EB9",
+                                 "#356493", "#1D4573", "#0A2E57")) +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 4))
+
+
+## without interstomatal and SMC labels
+DimPlot(stomatal_files, label = F, shuffle = T, order = rev(c("Stage 0-2", "Inter-specialized cells",  
+                                                              "SMCs", "SCs", "Early GMCs", 
+                                                              "Dividing GMCs", "Early GCs", "Late GCs"))) +
+  scale_colour_manual(values = c("#78C7B8", "lightgrey", "lightgrey", 
+                                 "#D8D97A", "#538EB9",
+                                 "#356493", "#1D4573", "#0A2E57")) +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 4))
+
+
+### Quality control
+par(mfrow=c(3,2))
+p1 <- DimPlot(stomatal_files, reduction = "umap")
+p6 <- DimPlot(stomatal_files, reduction = "umap", group.by = "tissue") + theme(legend.position = "bottom")
+p2 <- FeaturePlot(stomatal_files, features = "nFeature_RNA") 
+p3 <- FeaturePlot(stomatal_files, features = "nCount_RNA") 
+p4 <- FeaturePlot(stomatal_files, features = "percent.mt") 
+p5 <- FeaturePlot(stomatal_files, features = "percent.chl")
+p1+p6+p2+p3+p4+p5
+
+
+### Find markers
+Idents(stomatal_files) <- "seurat_clusters"
+stomatal.markers <- FindAllMarkers(stomatal_files, min.pct = 0.1)
+
+celltypes <- data.frame(cluster = c(0,1:16), celltype = c("Stage 0-2", "Stage 0-2", 
+                                                          "Stage 0-2", "Inter-specialized cells", 
+                                                          "Stage 0-2", "SCs", 
+                                                          "SMCs", "Early GCs", 
+                                                          "SMCs", "Early GMCs", 
+                                                          "Inter-specialized cells", "Stage 0-2", 
+                                                          "Late GCs", "Stage 0-2",
+                                                          "Dividing GMCs", "Stage 0-2",
+                                                          "Dividing GMCs"))
+
+stomatal_markers_info <- merge(stomatal.markers, celltypes, by="cluster", all.x=T)
+
+write.table(stomatal_markers_info[,c(7,1,8,2:6)], "E:/Scseq_brachy_dev/markers/revisions_paper/markers_stomatal_files.txt", sep=";", row.names = F)
 
 
 
@@ -899,42 +1306,37 @@ DimPlot(epidermis, cells.highlight = c(stom), sizes.highlight = 0.3)
 
 #---------------------------------------------------------------------------------------------------
 
-###### 21. Subset guard cell lineage ----------------------------------------------------------------
+###### 25. Subset guard cell lineage ----------------------------------------------------------------
 Idents(stomatal_files) <- "seurat_clusters"
-gc_lineage <- subset(stomatal_files, idents = c(2, 5, 6, 7, 9, 12))
+gc_lineage <- subset(stomatal_files, idents = c(2,11,13,9,14,16,7,12))
 
-dim(gc_lineage) # 1805
+dim(gc_lineage)
+## 2692
 
-### 21.1. Find variable features ----------------------------------------------------------------------------------------------------------------------
-gc_lineage <- FindVariableFeatures(gc_lineage, selection.method = "vst", nfeatures = 2000)
+DefaultAssay(gc_lineage) <- "integrated"
 
-### 21.2. Scale data ----------------------------------------------------------------------------------------------------------------------------------
+### Scale data
 gc_lineage <- ScaleData(gc_lineage, features = rownames(gc_lineage))
 
-### 21.3. run PCA ------------------------------------------------------------------------------------------------------------------------------------
+### run PCA
 gc_lineage <- RunPCA(gc_lineage, features = VariableFeatures(object = gc_lineage), npcs = 30)
 
 ElbowPlot(gc_lineage, ndims = 30)
 
-### 21.4. find neighbours and clusters ---------------------------------------------------------------------------------------------------------------
+### find neighbours and clusters
 gc_lineage <- FindNeighbors(gc_lineage, dims = 1:25)
 gc_lineage <- FindClusters(gc_lineage, resolution = 0.5) # 
 
-### 21.5. run UMAP and visualise --------------------------------------------------------------------------------------------------------------------
+### run UMAP and visualise
 gc_lineage <- RunUMAP(gc_lineage, dims = 1:25)
 
 DimPlot(gc_lineage, reduction = "umap", group.by = "seurat_clusters", label = T) +
   scale_colour_manual(values = met.brewer("Hiroshige", n=9))
 
 
-gc_lineage <- RenameIdents(gc_lineage, "0" = "Stage 0-1", "1" = "Early GCs",
-                           "2" = "Late GCs", "3" = "GMCs", 
-                           "4" = "GMCs", "5" = "Dividing GMCs",
-                           "6" = "Dividing GMCs")
-gc_lineage$stages <- Idents(gc_lineage)
-
 DimPlot(gc_lineage, reduction = "umap", group.by = "stages") +
-  scale_colour_manual(values = c("#86C592", "#0A2E57", "#204877", "#3E709E", "#5D9EC1"))
+  scale_colour_manual(values = c("#78C7B8", "#1D4573", "#538EB9", "#0A2E57", "#356493"))
+
 
 
 
@@ -951,29 +1353,30 @@ DimPlot(gc_lineage, reduction = "umap", group.by = "stages") +
 
 #---------------------------------------------------------------------------------------------------
 
-###### 22. Hair cell lineage ----------------------------------------------------------------
-Idents(epidermis) <- "seurat_clusters"
-hc_lineage <- subset(epidermis, idents = c(6, 7, 10, 12, 13, 15, 19, 11))
+###### 26. Hair cell lineage ----------------------------------------------------------------
+### HC lineage plus stage 0-2
+Idents(epidermis) <- "celltypes"
+hc_lineage <- subset(epidermis, idents = c("Stage 0-2", "Hair cell lineage"))
 
-dim(hc_lineage) # 5032 cells
+dim(hc_lineage)
+## 8467
 
-### 22.1. Find variable features ----------------------------------------------------------------------------------------------------------------------
-hc_lineage <- FindVariableFeatures(hc_lineage, selection.method = "vst", nfeatures = 2000)
+DefaultAssay(hc_lineage) <- "integrated"
 
-### 22.2. Scale data ----------------------------------------------------------------------------------------------------------------------------------
+### Scale data
 hc_lineage <- ScaleData(hc_lineage, features = rownames(hc_lineage))
 
-### 22.3. run PCA ------------------------------------------------------------------------------------------------------------------------------------
+### run PCA
 hc_lineage <- RunPCA(hc_lineage, features = VariableFeatures(object = hc_lineage), npcs = 30)
 
 ElbowPlot(hc_lineage, ndims = 30)
 
-### 22.4. find neighbours and clusters ---------------------------------------------------------------------------------------------------------------
+### find neighbours and clusters
 hc_lineage <- FindNeighbors(hc_lineage, dims = 1:25)
 hc_lineage <- FindClusters(hc_lineage, resolution = 0.5) # 
 
-### 22.5. run UMAP and visualise --------------------------------------------------------------------------------------------------------------------
+### run UMAP and visualise
 hc_lineage <- RunUMAP(hc_lineage, dims = 1:25)
 
 DimPlot(hc_lineage, reduction = "umap", group.by = "seurat_clusters", label = T) +
-  scale_colour_manual(values = met.brewer("Hiroshige", n=11))
+  scale_colour_manual(values = met.brewer("Hiroshige", n=14))

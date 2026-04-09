@@ -22,107 +22,122 @@ dev.plantmap$ROI.name <- factor(dev.plantmap$ROI.name, levels = c("Shoot_apex", 
                                                                   "Late_HC", "SC",
                                                                   "Silica_cell", "Interstomatal_cell"))
 
+for(row in 1:nrow(dev.plantmap)) {
+  if(dev.plantmap$ROI.name[row] == "Interstomatal_cell") {
+    dev.plantmap$ROI.name[row] <- "Inter_specialized_cell"
+  }
+}
+
+
 ### Show the map
 ggPlantmap.plot(dev.plantmap) + 
   guides(fill=guide_legend(title = "Cell type/stage")) +
   scale_fill_manual(values = met.brewer("Hiroshige", n = 15))
 
 ### save as R object
-saveRDS(dev.plantmap, "leaf_dev_plantmap.rds")
+saveRDS(dev.plantmap, "leaf_dev_plantmap_revised.rds")
 
 
 
 
 ###### Generate average expression file for ggPlantmap ----------------------------------------------------------------
-wt_sid_nocca <- readRDS("E:/Scseq_brachy_dev/R_data_objects/wt_sid_nocca_all_genome_v1_2.rds")
-epidermis <- readRDS("E:/Scseq_brachy_dev/R_data_objects/epidermis_all_shorter_genome_v1_2.rds")
-stomatal_files <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_cell_files.rds")
+whole_data <- readRDS("E:/Scseq_brachy_dev/R_data_objects/whole_data_STACAS.rds")
+epidermis <- readRDS("E:/Scseq_brachy_dev/R_data_objects/epidermis_withoutprim_STACAS.rds")
+stomatal_files <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_cell_files_withoutprim_STACAS")
 
 
 ### prepare data for tissue types (Shoot apex, Mesophyll, Vasculature, Epidermis)
-DimPlot(wt_sid_nocca)
+DimPlot(whole_data)
 
-Idents(wt_sid_nocca) <- "seurat_clusters"
-wt_sid_nocca <- RenameIdents(wt_sid_nocca, `0` = "Mesophyll", `1` = "Mesophyll", 
-                             `2` = "SAM", `3` = "Vasculature", 
-                             `4` = "Epidermis", `5` = "Mesophyll", 
-                             `6` = "Mesophyll", `7` = "Epidermis", 
-                             `8` = "Mesophyll", `9` = "Mesophyll", 
-                             `10` = "Epi.-Meso.-Vasc.", `11` = "Epidermis", 
-                             `12` = "Meso.-Vasc.", `13` = "Epidermis", 
-                             `14` = "Mesophyll", `15` = "Epi.-Meso.", 
-                             `16` = "Vasculature", `17` = "Epidermis",
-                             `18` = "Mesophyll", `19` = "Vasculature",
-                             `20` = "Vasculature", `21` = "Vasculature",
-                             `22` = "Vasculature", `23` = "Epidermis",
-                             `24` = "Mesophyll", `25` = "Epidermis",
-                             `26` = "Vasculature", `27` = "Epidermis",
-                             `28` = "Mesophyll")
+Idents(whole_data) <- "seurat_clusters"
+whole_data <- RenameIdents(whole_data, `0` = "Mesophyll", `1` = "Mesophyll", 
+                           `2` = "Mesophyll", `3` = "Shoot_apex", 
+                           `4` = "Mesophyll", `5` = "Epidermis", 
+                           `6` = "Unclear", `7` = "Epidermis", 
+                           `8` = "Mesophyll", `9` = "Mesophyll", 
+                           `10` = "Vasculature", `11` = "Shoot_apex", 
+                           `12` = "Epidermis", `13` = "Epidermis", 
+                           `14` = "Mesophyll", `15` = "Mesophyll",
+                           `16` = "Unclear", `17` = "Vasculature",
+                           `18` = "Epidermis", `19` = "Vasculature",
+                           `20` = "Vasculature", `21` = "Shoot_apex",
+                           `22` = "Shoot_apex", `23` = "Unclear",
+                           `24` = "Shoot_apex", `25` = "Epidermis",
+                           `26` = "Epidermis", `27` = "Epidermis",
+                           `28` = "Shoot_apex", `29` = "Epidermis",
+                           `30` = "Epidermis", `31` = "Epidermis")
 
-alltissues <- subset(wt_sid_nocca, idents = c("SAM", "Mesophyll", "Vasculature", "Epidermis"))
+alltissues <- subset(whole_data, idents = c("Shoot_apex", "Mesophyll", "Vasculature", "Epidermis"))
 DimPlot(alltissues)
-alltissues <- RenameIdents(alltissues, "SAM" = "Shoot_apex", "Mesophyll" = "Mesophyll",
-                           "Vasculature" = "Vasculature", "Epidermis" = "Epidermis")
 
 ## average gene expression per tissue identity
-all2 <- as.data.frame(AverageExpression(alltissues))
-colnames(all2) <- c("Shoot_apex", "Mesophyll", "Vasculature", "Epidermis")
+all2 <- as.data.frame(AverageExpression(alltissues, assays = "RNA"))
+colnames(all2)
+colnames(all2) <- c("Mesophyll", "Shoot_apex", "Epidermis", "Vasculature")
 all2$gene <- rownames(all2)
 
 
 
 
 
-### prepare data for epidermal cell types (Silica cells and early, middle, late HCs)
+### prepare data for epidermal cell types (Silica cells, early, middle, late HCs and inter-specialized cells)
 DimPlot(epidermis, reduction = "umap", group.by = "seurat_clusters", label = T)
 
 Idents(epidermis) <- "seurat_clusters"
-epi <- subset(epidermis, idents = c(0, 1, 6, 7, 10, 12, 13, 18))
+epi <- subset(epidermis, idents = c(0, 2, 4, 6, 7, 8, 9, 14, 17, 21))
 
 Idents(epi) <- "seurat_clusters"
-epi <- RenameIdents(epi, `0` = "Silica_cell", `1` = "Silica_cell", 
-                    `6` = "Middle_HC", `7` = "Early_HC", 
-                    `10` = "Early_HC", `12` = "Middle_HC", 
-                    `13` = "Late_HC", `18` = "Silica_cell")
+
+epi <- RenameIdents(epi, `0` = "Silica_cell",
+                    `2` = "Early_HC",
+                    `4` = "Inter_specialized_cell",
+                    `6` = "Silica_cell", 
+                    `7` = "Inter_specialized_cell",
+                    `8` = "Middle_HC", 
+                    `9` = "Silica_cell",
+                    `14` = "Late_HC",
+                    `17` = "Inter_specialized_cell",
+                    `21` = "Silica_cell")
 
 DimPlot(epi)
 
 ## reorder cluster names to display legend in better order
 epi$labels <- Idents(epi)
-epi$labels <- factor(epi$labels, levels = c("Early_HC", "Middle_HC", "Late_HC", "Silica_cell"))
+epi$labels <- factor(epi$labels, levels = c("Early_HC", "Middle_HC", "Late_HC", "Silica_cell", "Inter_specialized_cell"))
 
 DimPlot(epi)
 DimPlot(epi, group.by = "labels") + 
-  scale_colour_manual(values = met.brewer("Hiroshige", n=4))
+  scale_colour_manual(values = met.brewer("Hiroshige", n=5))
 
 Idents(epi) <- "labels"
 
 ## average gene expression per cell identity
-epi2 <- as.data.frame(AverageExpression(epi))
-colnames(epi2) <- c("Early_HC", "Middle_HC", "Late_HC", "Silica_cell")
+epi2 <- as.data.frame(AverageExpression(epi, assays = "RNA"))
+colnames(epi2) <- c("Early_HC", "Middle_HC", "Late_HC", "Silica_cell", "Inter_specialized_cell")
 epi2$gene <- rownames(epi2)
 
 
 
-### prepare data for stomatal cell types and stages (Early_GMC, Div_GMC, Early_GC, Late_GC, SC, Interstomatal_cell)
+
+
+### prepare data for stomatal cell types and stages (Early_GMC, Div_GMC, Early_GC, Late_GC, SC)
 DimPlot(stomatal_files)
 Idents(stomatal_files) <- "seurat_clusters"
-sto <- subset(stomatal_files, idents = c(1, 4:9, 12, 13))
+sto <- subset(stomatal_files, idents = c(5, 7, 9, 12, 14, 16))
 
-sto <- RenameIdents(sto, `1` = "Interstomatal cells", 
-                    `4` = "SCs", `5` = "Late GCs", 
-                    `6` = "Early GCs", `7` = "Dividing GMCs", 
-                    `8` = "Interstomatal cells", `9` = "Early GMCs",
-                    `12` = "Dividing GMCs", `13` = "SCs")
+sto <- RenameIdents(sto, `5` = "SC",
+                    `7` = "Early_GC",  
+                    `9` = "Early_GMC", 
+                    `12` = "Late_GC", 
+                    `14` = "Div_GMC",
+                    `16` = "Div_GMC")
 
 DimPlot(sto)
-sto <- RenameIdents(sto, "Early GMCs" = "Early_GMC", "Dividing GMCs" = "Div_GMC", 
-                    "Early GCs" = "Early_GC", "Late GCs" = "Late_GC", 
-                    "SCs" = "SC", "Interstomatal cells" = "Interstomatal_cell")
 
 ## average gene expression per cell identity
-sto2 <- as.data.frame(AverageExpression(sto))
-colnames(sto2) <- c("Early_GMC", "Div_GMC", "Early_GC", "Late_GC", "SC", "Interstomatal_cell")
+sto2 <- as.data.frame(AverageExpression(sto, assays = "RNA"))
+colnames(sto2)
+colnames(sto2) <- c("SC", "Early_GC", "Early_GMC", "Late_GC", "Div_GMC")
 sto2$gene <- rownames(sto2)
 
 
@@ -137,7 +152,7 @@ combined_data <- select(combined_data, -gene.1)
 combined_data2 <- combined_data %>%
   pivot_longer(-gene) ## making it tidy
 
-write.table(combined_data2, "E:/Scseq_brachy_dev/ggPlantmap/averaged_expression_per_celltype.csv")
+write.table(combined_data2, "E:/Scseq_brachy_dev/ggPlantmap/averaged_expression_per_celltype_STACAS.csv")
 
 
 
@@ -150,7 +165,7 @@ write.table(combined_data2, "E:/Scseq_brachy_dev/ggPlantmap/averaged_expression_
 
 ###### Gene expression files -------------------------------------------------------------------------------------------------------
 ### Table to indicate file that needs to be loaded for the gene
-features <- rownames(wt_sid_nocca)
+features <- rownames(whole_data)
 location_file <- data.frame(accession = features, all_cells1 = NA, all_cells2 = NA, epidermis = NA, stomatal_cell_files = NA)
 rownames(location_file) <- location_file$accession
 
@@ -216,23 +231,24 @@ location_file[33998:35797, "all_cells2"] <- "www/All_features_part58.arrow"
 location_file[35798:37597, "all_cells2"] <- "www/All_features_part59.arrow"
 location_file[37598:39068, "all_cells2"] <- "www/All_features_part60.arrow"
 
-location_file[1:2997, "epidermis"] <- "www/Epi_part1.arrow"
-location_file[2998:6997, "epidermis"] <- "www/Epi_part2.arrow"
-location_file[6998:10497, "epidermis"] <- "www/Epi_part3.arrow"
-location_file[10498:13997, "epidermis"] <- "www/Epi_part4.arrow"
-location_file[13998:17997, "epidermis"] <- "www/Epi_part5.arrow"
-location_file[17998:20997, "epidermis"] <- "www/Epi_part6.arrow"
-location_file[20998:23997, "epidermis"] <- "www/Epi_part7.arrow"
-location_file[23998:26997, "epidermis"] <- "www/Epi_part8.arrow"
-location_file[26998:29997, "epidermis"] <- "www/Epi_part9.arrow"
-location_file[29998:32997, "epidermis"] <- "www/Epi_part10.arrow"
-location_file[32998:35997, "epidermis"] <- "www/Epi_part11.arrow"
-location_file[35998:39068, "epidermis"] <- "www/Epi_part12.arrow"
+location_file[1:2897, "epidermis"] <- "www/Epi_part1.arrow"
+location_file[2898:6597, "epidermis"] <- "www/Epi_part2.arrow"
+location_file[6598:9997, "epidermis"] <- "www/Epi_part3.arrow"
+location_file[9998:13397, "epidermis"] <- "www/Epi_part4.arrow"
+location_file[13398:16997, "epidermis"] <- "www/Epi_part5.arrow"
+location_file[16998:20197, "epidermis"] <- "www/Epi_part6.arrow"
+location_file[20198:23897, "epidermis"] <- "www/Epi_part7.arrow"
+location_file[23898:26997, "epidermis"] <- "www/Epi_part8.arrow"
+location_file[26998:30497, "epidermis"] <- "www/Epi_part9.arrow"
+location_file[30498:34797, "epidermis"] <- "www/Epi_part10.arrow"
+location_file[34798:39068, "epidermis"] <- "www/Epi_part11.arrow"
 
-location_file[1:9997, "stomatal_cell_files"] <- "www/Stom_part1.arrow"
-location_file[9998:19997, "stomatal_cell_files"] <- "www/Stom_part2.arrow"
-location_file[19998:29997, "stomatal_cell_files"] <- "www/Stom_part3.arrow"
-location_file[29998:39068, "stomatal_cell_files"] <- "www/Stom_part4.arrow"
+location_file[1:6997, "stomatal_cell_files"] <- "www/Stom_part1.arrow"
+location_file[6998:13997, "stomatal_cell_files"] <- "www/Stom_part2.arrow"
+location_file[13998:20997, "stomatal_cell_files"] <- "www/Stom_part3.arrow"
+location_file[20998:27997, "stomatal_cell_files"] <- "www/Stom_part4.arrow"
+location_file[27998:33997, "stomatal_cell_files"] <- "www/Stom_part5.arrow"
+location_file[33998:39068, "stomatal_cell_files"] <- "www/Stom_part6.arrow"
 
 
 write_delim(location_file, "E:/Scseq_brachy_dev/Files for webpage/Location_file.txt", delim = "\t")
@@ -244,9 +260,9 @@ saveRDS(location_file, "E:/Scseq_brachy_dev/Files for webpage/Location_file_arro
 library(arrow)
 
 ### For all cells
-features <- rownames(wt_sid_nocca)
-gene_info_1 <- FetchData(wt_sid_nocca, vars = c(c("umap_1", "umap_2"), features), cells = 1:35000)
-gene_info_2 <- FetchData(wt_sid_nocca, vars = c(c("umap_1", "umap_2"), features), cells = 35001:69687)
+features <- rownames(whole_data)
+gene_info_1 <- FetchData(whole_data, vars = c(c("umap_1", "umap_2"), features), cells = 1:35000)
+gene_info_2 <- FetchData(whole_data, vars = c(c("umap_1", "umap_2"), features), cells = 35001:69687)
 
 
 gene_info_part1 <- gene_info_1[,1:1200]
@@ -494,57 +510,54 @@ write_feather(gene_info_part60, sink = "D:/Github/website/www/All_features_part6
 
 
 ### Epidermis
-### The arrow files would exceed 50MB so I split the data into 12 files
+### The arrow files would exceed 50MB so I split the data into several files
 features <- rownames(epidermis)
 gene_info <- FetchData(epidermis, vars = c(c("umap_1", "umap_2"), "ident", features))
 
-gene_info_part1 <- gene_info[,1:3000]
+gene_info_part1 <- gene_info[,1:2900]
 gene_info_part1$cell <- rownames(gene_info_part1)
 write_feather(gene_info_part1, sink = "D:/Github/website/www/Epi_part1.arrow")
 
-gene_info_part2 <- gene_info[,3001:7000]
+gene_info_part2 <- gene_info[,2901:6600]
 gene_info_part2$cell <- rownames(gene_info_part2)
 write_feather(gene_info_part2, sink = "D:/Github/website/www/Epi_part2.arrow")
 
-gene_info_part3 <- gene_info[,7001:10500]
+gene_info_part3 <- gene_info[,6601:10000]
 gene_info_part3$cell <- rownames(gene_info_part3)
 write_feather(gene_info_part3, sink = "D:/Github/website/www/Epi_part3.arrow")
 
-gene_info_part4 <- gene_info[,10501:14000]
+gene_info_part4 <- gene_info[,10001:13400]
 gene_info_part4$cell <- rownames(gene_info_part4)
 write_feather(gene_info_part4, sink = "D:/Github/website/www/Epi_part4.arrow")
 
-gene_info_part5 <- gene_info[,14001:18000]
+gene_info_part5 <- gene_info[,13401:17000]
 gene_info_part5$cell <- rownames(gene_info_part5)
 write_feather(gene_info_part5, sink = "D:/Github/website/www/Epi_part5.arrow")
 
-gene_info_part6 <- gene_info[,18001:21000]
+gene_info_part6 <- gene_info[,17001:20200]
 gene_info_part6$cell <- rownames(gene_info_part6)
 write_feather(gene_info_part6, sink = "D:/Github/website/www/Epi_part6.arrow")
 
-gene_info_part7 <- gene_info[,21001:24000]
+gene_info_part7 <- gene_info[,20201:23900]
 gene_info_part7$cell <- rownames(gene_info_part7)
 write_feather(gene_info_part7, sink = "D:/Github/website/www/Epi_part7.arrow")
 
-gene_info_part8 <- gene_info[,24001:27000]
+gene_info_part8 <- gene_info[,23901:27000]
 gene_info_part8$cell <- rownames(gene_info_part8)
 write_feather(gene_info_part8, sink = "D:/Github/website/www/Epi_part8.arrow")
 
-gene_info_part9 <- gene_info[,27001:30000]
+gene_info_part9 <- gene_info[,27001:30500]
 gene_info_part9$cell <- rownames(gene_info_part9)
 write_feather(gene_info_part9, sink = "D:/Github/website/www/Epi_part9.arrow")
 
-gene_info_part10 <- gene_info[,30001:33001]
+gene_info_part10 <- gene_info[,30501:34800]
 gene_info_part10$cell <- rownames(gene_info_part10)
 write_feather(gene_info_part10, sink = "D:/Github/website/www/Epi_part10.arrow")
 
-gene_info_part11 <- gene_info[,33001:36000]
+gene_info_part11 <- gene_info[,34801:39070]
 gene_info_part11$cell <- rownames(gene_info_part11)
 write_feather(gene_info_part11, sink = "D:/Github/website/www/Epi_part11.arrow")
 
-gene_info_part12 <- gene_info[,36001:39070]
-gene_info_part12$cell <- rownames(gene_info_part12)
-write_feather(gene_info_part12, sink = "D:/Github/website/www/Epi_part12.arrow")
 
 
 
@@ -554,22 +567,29 @@ write_feather(gene_info_part12, sink = "D:/Github/website/www/Epi_part12.arrow")
 features <- rownames(stomatal_files)
 gene_info <- FetchData(stomatal_files, vars = c(c("umap_1", "umap_2"), "ident", features))
 
-gene_info_part1 <- readRDS("D:/Github/website/www/Stom_part1.rds")
+gene_info_part1 <- gene_info[,1:7000]
 gene_info_part1$cell <- rownames(gene_info_part1)
 write_feather(gene_info_part1, sink = "D:/Github/website/www/Stom_part1.arrow")
 
-gene_info_part2 <- readRDS("D:/Github/website/www/Stom_part2.rds")
+gene_info_part2 <- gene_info[,7001:14000]
 gene_info_part2$cell <- rownames(gene_info_part2)
 write_feather(gene_info_part2, sink = "D:/Github/website/www/Stom_part2.arrow")
 
-gene_info_part3 <- readRDS("D:/Github/website/www/Stom_part3.rds")
+gene_info_part3 <- gene_info[,14001:21000]
 gene_info_part3$cell <- rownames(gene_info_part3)
 write_feather(gene_info_part3, sink = "D:/Github/website/www/Stom_part3.arrow")
 
-gene_info_part4 <- readRDS("D:/Github/website/www/Stom_part4.rds")
+gene_info_part4 <- gene_info[,21001:28000]
 gene_info_part4$cell <- rownames(gene_info_part4)
 write_feather(gene_info_part4, sink = "D:/Github/website/www/Stom_part4.arrow")
 
+gene_info_part5 <- gene_info[,28001:34000]
+gene_info_part5$cell <- rownames(gene_info_part5)
+write_feather(gene_info_part5, sink = "D:/Github/website/www/Stom_part5.arrow")
+
+gene_info_part6 <- gene_info[,34001:39071]
+gene_info_part6$cell <- rownames(gene_info_part6)
+write_feather(gene_info_part6, sink = "D:/Github/website/www/Stom_part6.arrow")
 
 
 
@@ -601,17 +621,17 @@ library(Seurat)
 library(MetBrewer)
 
 ### get coordinates for full dataset
-label_info_all <- FetchData(wt_sid_nocca, vars = c(c("umap_1", "umap_2"), "labels"))
-saveRDS(label_info_all, "E:/Scseq_brachy_dev/Files for webpage/All_labelled.rds")
+label_info_all <- FetchData(whole_data, vars = c(c("umap_1", "umap_2"), "annotated"))
+saveRDS(label_info_all, "E:/Scseq_brachy_dev/Files for webpage/All_labelled_STACAS.rds")
 
 
 
 ### get coordinates for epidermal dataset
 label_info_epi <- FetchData(epidermis, vars = c(c("umap_1", "umap_2"), "celltypes"))
-saveRDS(label_info_epi, "E:/Scseq_brachy_dev/Files for webpage/Epidermis_labelled.rds")
+saveRDS(label_info_epi, "E:/Scseq_brachy_dev/Files for webpage/Epidermis_labelled_STACAS.rds")
 
 
 
 ### get coordinates for stomatal dataset
 label_info_stom <- FetchData(stomatal_files, vars = c(c("umap_1", "umap_2"), "stages"))
-saveRDS(label_info_stom, "E:/Scseq_brachy_dev/Files for webpage/Stomata_labelled.rds")
+saveRDS(label_info_stom, "E:/Scseq_brachy_dev/Files for webpage/Stomata_labelled_STACAS.rds")

@@ -249,7 +249,6 @@ ggplot(mgx_sum, mapping=aes(x=Genotype, y=cells))+
   geom_jitter(width=0.1, height = 0, alpha = 0.5)+
   scale_y_continuous(limits = c(0, 320))+
   theme_classic()+
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(x=NULL, y=expression(paste("Mean cell numbers")))
 
 
@@ -260,7 +259,6 @@ ggplot(mgx_sum, mapping=aes(x=Genotype, y=mean_area))+
   geom_jitter(width=0.1, height = 0, alpha = 0.5)+
   scale_y_continuous(limits = c(0, 90))+
   theme_classic()+
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(x=NULL, y=expression(paste("Mean cell area [µm"^2,"]")))
 
 
@@ -277,5 +275,70 @@ ggplot(mgx_all, mapping=aes(x=Genotype, y=area))+
   geom_jitter(width=0.1, height = 0, alpha = 0.3)+
   scale_y_continuous(limits = c(0, 250))+
   theme_classic()+
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(x=NULL, y=expression(paste("Cell area [µm"^2,"]")))
+
+
+
+
+
+
+
+##### Fresh weight/dry weight measurements gras32 ---------------------------------------------------------------------------------------
+weight_gras32 <- read_excel("Z:/Lea/2025_ScSeq_paper/Tables/gras32_weight_measurements.xlsx")
+
+### Fresh weight
+t.test(weight_gras32$fresh_weight ~weight_gras32$genotype) # no significant difference
+
+sigfresh <- data.frame(genotype = c("WT", "gras32"),
+                     sig = c("a", "a"))
+
+ggplot(weight_gras32, mapping=aes(x=factor(genotype, levels = c("WT", "gras32")), y=fresh_weight))+
+  geom_boxplot(outlier.shape = NA, colour = "black")+
+  geom_text(sigfresh, mapping=aes(y=2, label=paste(sig)), show.legend = F)+
+  geom_jitter(width=0.1, height = 0, alpha = 0.8)+
+  scale_y_continuous(limits = c(0, 2))+
+  theme_classic()+
+  labs(x=NULL, y=expression(paste("Fresh weight [g]")))
+
+
+
+### Dry weight
+t.test(weight_gras32$dry_weight ~weight_gras32$genotype) # significant difference
+
+sigdry <- data.frame(genotype = c("WT", "gras32"),
+                     sig = c("a", "b"))
+
+ggplot(weight_gras32, mapping=aes(x=factor(genotype, levels = c("WT", "gras32")), y=dry_weight))+
+  geom_boxplot(outlier.shape = NA, colour = "black")+
+  geom_text(sigdry, mapping=aes(y=2, label=paste(sig)))+
+  geom_jitter(width=0.1, height = 0, alpha = 0.8)+
+  scale_y_continuous(limits = c(0, 2))+
+  theme_classic()+
+  labs(x=NULL, y=expression(paste("Dry weight [g]")))
+
+
+
+
+### Both in one plot
+combined_weight <- weight_gras32 %>% pivot_longer(cols = c(fresh_weight, dry_weight), names_to = "identifier", values_to = "weight")
+
+ggplot(combined_weight, mapping=aes(x=factor(individual), y=weight, fill = factor(identifier, levels = c("fresh_weight", "dry_weight"))))+
+  geom_col(position = "dodge")+
+  facet_grid(~genotype)+
+  scale_y_continuous(limits = c(0, 2))+
+  scale_fill_manual(values = c(met.brewer("Hokusai3", n=2)))+
+  theme_classic()+
+  guides(fill = guide_legend(title = NULL))+
+  labs(x=NULL, y=expression(paste("Weight [g]")))
+
+
+
+### Ratio
+t.test(weight_gras32$ratio_DW_FW ~weight_gras32$genotype) # not significant
+
+ggplot(weight_gras32, mapping=aes(x=factor(genotype, levels = c("WT", "gras32")), y=ratio_DW_FW))+
+  geom_boxplot(outlier.shape = NA, colour = "black")+
+  geom_jitter(width=0.1, height = 0, alpha = 0.8)+
+  scale_y_continuous(limits = c(0, 0.5))+
+  theme_classic()+
+  labs(x=NULL, y=expression(paste("Ratio DW/FW")))

@@ -5,6 +5,8 @@ library(Seurat)
 
 setwd("D:/Github/website/")
 
+
+gc_lineage <- readRDS("E:/Scseq_brachy_dev/R_data_objects/gc_lineage_withoutprim_STACAS.rds")
 gene_info_gc <- FetchData(gc_lineage, vars = c(c("umap_1", "umap_2"), features = c("BdiBd21-3.3G0131200", # SPCH2
                                                                                    "BdiBd21-3.1G0240400", # MUTE
                                                                                    "BdiBd21-3.2G0300000", # FAMA
@@ -16,6 +18,7 @@ gene_info_gc <- FetchData(gc_lineage, vars = c(c("umap_1", "umap_2"), features =
                                                                                    "BdiBd21-3.2G0049500" # GELP1
                                                                                    )))
 
+hc_lineage <- readRDS("E:/Scseq_brachy_dev/R_data_objects/hc_lineage_withoutprim_STACAS.rds")
 gene_info_hc <- FetchData(hc_lineage, vars = c(c("umap_1", "umap_2"), features = c("BdiBd21-3.3G0292700", # SLP1-like3
                                                                                    "BdiBd21-3.2G0467800", # POX
                                                                                    "BdiBd21-3.1G0921800", # SLP1-like5
@@ -26,10 +29,12 @@ gene_info_hc <- FetchData(hc_lineage, vars = c(c("umap_1", "umap_2"), features =
                                                                                    )))
 
 
+
+
 ### read files with data for labelled UMAP plots
-label_info_all <- readRDS("D:/Github/website/www/All_labelled.rds")
-label_info_epi <- readRDS("D:/Github/website/www/Epidermis_labelled.rds")
-label_info_stom <- readRDS("D:/Github/website/www/Stomata_labelled.rds")
+label_info_all <- readRDS("D:/Github/website/www/All_labelled_STACAS.rds")
+label_info_epi <- readRDS("D:/Github/website/www/Epidermis_labelled_STACAS.rds")
+label_info_stom <- readRDS("D:/Github/website/www/Stomata_labelled_STACAS.rds")
 
 ### Location file required for feature plots
 location_file <- readRDS("D:/Github/website/www/Location_file_arrowfiles.rds") # this is the same file as for the web tool
@@ -82,7 +87,7 @@ featureplot_website <- function(dataset, gene=NULL) {
       feat_data <- feat_data[order(feat_data[,3]),]
       
       ggplot(feat_data)+
-        geom_point(aes(x=umap_1, y=umap_2, colour = feat_data[,3]), size = 0.5)+
+        geom_point(aes(x=umap_1, y=umap_2, colour = feat_data[,3]), size = 0.7)+
         scale_colour_gradient2(low = "#FFFAA0", mid = "red", high = "darkblue", midpoint = max(feat_data[,3])/2)+
         theme_classic() +
         labs(colour = "Expression", title = gene)
@@ -95,7 +100,7 @@ featureplot_website <- function(dataset, gene=NULL) {
         feat_data <- feat_data[order(feat_data[,3]),]
         
         ggplot(feat_data)+
-          geom_point(aes(x=umap_1, y=umap_2, colour = feat_data[,3]), size = 0.5)+
+          geom_point(aes(x=umap_1, y=umap_2, colour = feat_data[,3]), size = 0.7)+
           scale_colour_gradient2(low = "#FFFAA0", mid = "red", high = "darkblue", midpoint = max(feat_data[,3])/2)+
           theme_classic()+
           labs(colour = "Expression", title = gene)
@@ -139,6 +144,20 @@ featureplot_website <- function(dataset, gene=NULL) {
                 theme_classic() +
                 labs(colour = "Expression", title = gene)
             }
+          
+          else {
+            if(dataset == "HC lineage") {
+              feat_data <- gene_info_hc[,c("umap_1", "umap_2", gene)]
+              
+              feat_data <- feat_data[order(feat_data[,3]),]
+              
+              ggplot(feat_data)+
+                geom_point(aes(x=umap_1, y=umap_2, colour = feat_data[,3]), size = 0.7)+
+                scale_colour_gradient2(low = "#FFFAA0", mid = "red", high = "darkblue", midpoint = max(feat_data[,3])/2)+
+                theme_classic() +
+                labs(colour = "Expression", title = gene)
+              }
+            }
           }
         }
       }
@@ -147,13 +166,17 @@ featureplot_website <- function(dataset, gene=NULL) {
 }
 
 
-### Featureplots for paper (save as 3.5x3.5 PDF)
+### Featureplots for paper (save as 3.5x3.5 PDF) - the names here are either from literature or have been checked with OMA browser (and sometimes phytozome)
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.5G0316500") # WOX4
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.5G0168500") # FCP1
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0402200") # CLV1
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.2G0427700") # FEA2
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.2G0010000") # FEA3
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0571300") # FEA4
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0185500") # PHB/PHV-like1
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.4G0021900") # PHB/PHV-like2
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.3G0378200") # REV
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0499900") # AGO10/PINHEAD (PNH)/ZWILLE (ZLL)
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0588300") # PIN1a
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0135700") # KN1
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0773000") # KNAT1-like
@@ -173,13 +196,21 @@ featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0657800") # GRAS3
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0164900") # Pavement cell GELP 
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.4G0052400") # AS1
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.2G0089600") # TCP4-like
-featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0741600") # TSO1
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0741600") # TSO1-like
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.5G0296400") # ML1-like
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.3G0783600") # PIN1b
 featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0942300") # CRC
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.2G0231400") # TED4-like2 (procambium)
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.4G0103700") # SWEET13 (bundle sheath cells)
+featureplot_website(dataset = "All cells", gene = "BdiBd21-3.1G0268700") # MYB88-like
+
+ggsave("all_MYB88-like.png", path = "E:/Scseq_brachy_dev/plots/paper_revision_plots/feature plots/",
+       units = "in", width=3.5, height=3.5, dpi=300, device = "png")
 
 
+featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.1G0942300") # CRC
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.3G0074300") # BdSPL5
+featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.1G0421000") # BdSPL10
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.2G0477300") # BdWOX3B
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.1G0523400") # BdSPCH1
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.3G0131200") # BdSPCH2
@@ -203,20 +234,25 @@ featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.3G0292200") # SLP1-
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.1G0855400") # SLP1-like 9
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.2G0255500") # PME53-like
 featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.2G0561000") # TMM
-featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.1G0164900") # Pavement cell GELP
-featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.3G0181200") # L-gulonolactone oxidase
-featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.5G0356800") # peroxidase
+featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.1G0164900") # 
+featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.3G0181200") # 
+featureplot_website(dataset = "Epidermis", gene = "BdiBd21-3.5G0356800") # 
+
+ggsave("epi_TMM.png", path = "E:/Scseq_brachy_dev/plots/paper_revision_plots/feature plots/",
+       units = "in", width=3.5, height=3.5, dpi=300, device = "png")
 
 
+
+featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0523400") # SPCH1
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.3G0131200") # SPCH2
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0240400") # MUTE
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0300000") # FAMA
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0326500") # CST1 
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.4G0612300") # DUF567
+featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0352300") # CaLB
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0255500") # PME53-like
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0614100") # LRR kinase
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0049500") # GELP1
-featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0523400") # SPCH1
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.4G0234500") # MYB60-like
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.4G0254800") # ICE1
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0762000") # SCRM2
@@ -228,7 +264,7 @@ featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.5G0153700
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.3G0620800") # SERK1/2-like2
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.3G0209300") # SERK1/2-like3
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.2G0561000") # TMM
-featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G1009000") # SDD1-like
+featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G1009000") # SDD1
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.5G0238000") # YDA1
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.3G0680900") # YDA2
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0885800") # MPK3-like
@@ -246,13 +282,19 @@ featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0233100
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0164900") # Pavement cell GELP
 featureplot_website(dataset = "Stomatal cell files", gene = "BdiBd21-3.1G0206300") # SCAP1
 
+ggsave("sto_ROP9.png", path = "E:/Scseq_brachy_dev/plots/paper_revision_plots/feature plots/",
+       units = "in", width=3.5, height=3.5, dpi=300, device = "png")
+
+
+
+
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.3G0131200") # SPCH2
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.1G0240400") # MUTE
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.2G0300000") # FAMA
-featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.1G0206300") # SCAP1
+featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.1G0206300") # SCAP1-like
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.4G0234500") # MYB60-like
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.2G0561000") # TMM
-featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.1G1009000") # SDD1-like
+featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.1G1009000") # SDD1
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.2G0614100") # LRR kinase
 featureplot_website(dataset = "GC lineage", gene = "BdiBd21-3.2G0049500") # GELP1
 
@@ -264,9 +306,8 @@ featureplot_website(dataset = "HC lineage", gene = "BdiBd21-3.1G0421000") # SPL1
 featureplot_website(dataset = "HC lineage", gene = "BdiBd21-3.2G0477300") # WOX3B
 featureplot_website(dataset = "HC lineage", gene = "BdiBd21-3.3G0074300") # SPL5
 
-
-
-
+ggsave("HC_SLP1-like5.png", path = "E:/Scseq_brachy_dev/plots/paper_revision_plots/feature plots/",
+       units = "in", width=3.5, height=3.5, dpi=300, device = "png")
 
 
 
@@ -290,4 +331,45 @@ doi$goi_score <- ifelse(test = doi$gene_expression1 > 0 & doi$contra_expression1
 
 DimPlot(doi, reduction = "umap", group.by = "goi_score", 
         order = list("gene", "contra_gene", "both", "Neither"), 
-        cols = c("#ECECEC", "#7e2e7b", "#ff00ff", "#71c837"))
+        cols = c("#ECECEC", "#7e2e7b", "#ff00ff", "#71c837"), shuffle = T)
+
+
+
+### Function for easy plotting
+gene_vs_gene_plot <- function(dataset, gene, contra_gene=NULL, combined_expression = "no") {
+  ### give each cell a score based on the expression of a specific gene
+  doi <- dataset
+  doi <- AddModuleScore(doi, features = list(gene), nbin = 2, name = "gene_expression")
+  
+  if(!is_empty(contra_gene)) {
+    doi <- AddModuleScore(doi, features = list(contra_gene), nbin = 2, name = "contra_expression")
+    
+    ### categorise cells into cells that have and don't have the genes of interest expressed
+    doi$goi_score <- ifelse(test = doi$gene_expression1 > 0 & doi$contra_expression1 <= 0, yes = "gene",
+                            no = ifelse(test = doi$gene_expression1 <= 0 & doi$contra_expression1 > 0, yes = "contra_gene",
+                                        no = ifelse(test = doi$gene_expression1 > 0 & doi$contra_expression1 > 0, yes = "both",
+                                                    no = "neither")))
+    
+    ### UMAP plot to show which cells express the gene of interest
+    print(DimPlot(doi, reduction = "umap", group.by = "goi_score", 
+                  order = list("both", "gene", "contra_gene", "Neither"), 
+                  cols = c("#ECECEC", "#ff00ff", "#71c837", "#7e2e7b"))) 
+  }
+  
+  
+  else {
+    doi$goi_score <- ifelse(test = doi$gene_expression1 > 0, yes = "positive",
+                            no = "negative")
+    
+    print(DimPlot(doi, reduction = "umap", group.by = "goi_score",
+                  order = list("positive", "negative"), 
+                  cols = c("#ECECEC", "#DC267F")))
+  }
+}
+
+
+
+
+
+## MUTE vs. FAMA
+gene_vs_gene_plot(stomatal_files, gene = "BdiBd21-3.1G0240400", contra_gene = "BdiBd21-3.2G0300000")

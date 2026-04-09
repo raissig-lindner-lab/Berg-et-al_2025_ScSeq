@@ -4,19 +4,13 @@
 
 
 ### load original dataset
-wt_sid_nocca <- readRDS("E:/Scseq_brachy_dev/R_data_objects/wt_sid_nocca_all_genome_v1_2.rds")
-epidermis <- readRDS("E:/Scseq_brachy_dev/R_data_objects/epidermis_all_shorter_genome_v1_2.rds")
-stomata <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_lineage_2024.rds")
-stomatal_files <- readRDS("E:/Scseq_brachy_dev/R_data_objects/stomatal_cell_files.rds")
-gc_lineage <- readRDS("E:/Scseq_brachy_dev/R_data_objects/gc_lineage.rds")
-hc_lineage <- readRDS("E:/Scseq_brachy_dev/R_data_objects/hc_lineage.rds")
-
+gc_lineage <- readRDS("E:/Scseq_brachy_dev/R_data_objects/gc_lineage_withoutprim_STACAS.rds")
+hc_lineage <- readRDS("E:/Scseq_brachy_dev/R_data_objects/hc_lineage_withoutprim_STACAS.rds")
 
 ### load libraries
 library(tidyverse)
 library(Seurat)
 library(MetBrewer)
-library(viridis)
 
 ############## MONOCLE -------------------------------------------------------------------------------------------
 
@@ -29,25 +23,23 @@ library(SeuratWrappers)
 
 ## based on https://github.com/satijalab/seurat-wrappers/blob/master/docs/monocle3.md and https://ucdavis-bioinformatics-training.github.io/2021-August-Advanced-Topics-in-Single-Cell-RNA-Seq-Trajectory-and-Velocity/data_analysis/monocle_fixed 
 
-### reupload a previous file
-cds <- readRDS("E:/Scseq_brachy_dev/R_data_objects/gc_lineage_monocle.rds")
-cds <- readRDS("E:/Scseq_brachy_dev/R_data_objects/hc_lineage_monocle.rds")
-
-
-### or convert Seurat object into a CellDataSet object
-data <- JoinLayers(wt_sid_nocca)
-data <- JoinLayers(stomata)
-data <- JoinLayers(stomatal_files)
+### convert Seurat object into a CellDataSet object
+### for non-integrated seurat object, first use JoinLayers
 data <- JoinLayers(gc_lineage)
 data <- JoinLayers(hc_lineage)
+
+### for integrated data, no JoinLayers necessary
+data <- gc_lineage
+data <- hc_lineage
+
+DefaultAssay(data) <- "RNA"
 
 cds <- as.cell_data_set(data)
 
 cds@rowRanges@elementMetadata@listData[["gene_short_name"]] <- rownames(data[["RNA"]])
 cds <- preprocess_cds(cds, num_dim = 50)
 
-cds <- cluster_cells(cds, resolution=0.001) # GC lineage
-cds <- cluster_cells(cds, resolution = 0.0001) # HC lineage
+cds <- cluster_cells(cds, resolution=0.001) # GC lineage and HC lineage STACAS
 
 p1 <- plot_cells(cds, color_cells_by = "cluster", show_trajectory_graph = FALSE)
 p2 <- plot_cells(cds, color_cells_by = "partition", show_trajectory_graph = FALSE)
@@ -58,7 +50,6 @@ cds <- learn_graph(cds, use_partition = F, verbose = FALSE)
 
 plot_cells(cds,
            color_cells_by = "cluster",
-           label_groups_by_cluster=FALSE,
            label_leaves=FALSE,
            label_branch_points=FALSE)
 
@@ -67,12 +58,11 @@ cds <- estimate_size_factors(cds)
 
 ### colour cells by pseudotime
 # check with featureplots which are the earliest cells, e.g. the root cluster
-plot_cells(cds, genes = "BdiBd21-3.3G0074300", show_trajectory_graph = F, group_label_size = 5)
-
+plot_cells(cds, genes = "BdiBd21-3.3G0074300", show_trajectory_graph = F, group_label_size = 5) # BdSPL5
 
 ## define root cluster
-cds <- order_cells(cds, root_cells = colnames(cds[,clusters(cds) == 2])) # gc_lineage
-cds <- order_cells(cds, root_cells = colnames(cds[,clusters(cds) == 1])) # hc_lineage
+cds <- order_cells(cds, root_cells = colnames(cds[,clusters(cds) == 1])) # GC lineage STACAS
+cds <- order_cells(cds, root_cells = colnames(cds[,clusters(cds) == 6])) # HC lineage STACAS
 
   
 ## plot
@@ -137,8 +127,8 @@ plot_cells(cds,
 gc_lineage$pseudotime <- pseudotime(cds)
 FeaturePlot(gc_lineage, "pseudotime")
  
-saveRDS(cds, "E:/Scseq_brachy_dev/R_data_objects/hc_lineage_monocle.rds")
-saveRDS(cds, "E:/Scseq_brachy_dev/R_data_objects/gc_lineage_monocle.rds")
+#saveRDS(cds, "E:/Scseq_brachy_dev/R_data_objects/hc_lineage_STACAS_monocle.rds")
+#saveRDS(cds, "E:/Scseq_brachy_dev/R_data_objects/gc_lineage_STACAS_monocle.rds")
 
 
 
@@ -147,7 +137,7 @@ saveRDS(cds, "E:/Scseq_brachy_dev/R_data_objects/gc_lineage_monocle.rds")
 ###### Expression patterns of selected genes over time (Monocle Pseudotime) -------------------------------------------------
 ### exctract info on genes of interest
 genes <- row.names(subset(fData(cds),
-                          gene_short_name %in% c("BdiBd21-3.1G0523400", # SPCH1
+                          gene_short_name %in% c("BdiBd21-3.3G0131200", # SPCH2
                                                  "BdiBd21-3.1G0240400", # MUTE
                                                  "BdiBd21-3.2G0300000", # FAMA
                                                  "BdiBd21-3.1G0206300", # SCAP1
@@ -170,14 +160,9 @@ genes <- row.names(subset(fData(cds),
 cds_subset <- cds[genes,]
 
 
-
-
-
-
-
 ### visualize gene expression over pseudotime gradient
 plot_genes_in_pseudotime(cds_subset, color_cells_by = "stages",
-                         panel_order = c("BdiBd21-3.1G0523400", # SPCH1
+                         panel_order = c("BdiBd21-3.3G0131200", # SPCH2
                                          "BdiBd21-3.1G0240400", # MUTE
                                          "BdiBd21-3.2G0300000", # FAMA
                                          "BdiBd21-3.1G0206300", # SCAP1
@@ -197,7 +182,7 @@ plot_genes_in_pseudotime(cds_subset, color_cells_by = "pseudotime",
                                          "BdiBd21-3.3G0074300" # BdSPL5
                                          ),
                          min_expr = 0.005,
-                         cell_size = 1)
+                         cell_size = 1) # save as 4.5x5 (portrait)
 
 
 
@@ -224,6 +209,6 @@ gene_exp_over_pseudotime <- function(genes, colour_by = "seurat_clusters",
 
 
 ## SPCH2, MUTE, FAMA, SCAP1, MYB60 (SPCH2 at bottom) with the GC lineage subset
-gene_exp_over_pseudotime(c("BdiBd21-3.4G0234500", "BdiBd21-3.1G0206300", "BdiBd21-3.2G0300000", "BdiBd21-3.1G0240400", "BdiBd21-3.1G0523400"),
+gene_exp_over_pseudotime(c("BdiBd21-3.4G0234500", "BdiBd21-3.1G0206300", "BdiBd21-3.2G0300000", "BdiBd21-3.1G0240400", "BdiBd21-3.3G0131200"),
                          colour_by = "stages",
-                         colours = c("#78C7B8", "#1D4573", "#0A2E57", "#538EB9", "#356493"))
+                         colours = c("#78C7B8", "#1D4573", "#538EB9", "#0A2E57", "#356493"))

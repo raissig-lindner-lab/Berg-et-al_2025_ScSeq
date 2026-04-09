@@ -46,21 +46,21 @@ map_expression <- function(data, accession_nr) {
   
   ### Plot expression with ggplantmap
   ggPlantmap.heatmap(final.table, value.quant = Expression) + 
-          scale_fill_gradient2(low="lightyellow", mid = "red", high="darkblue", midpoint = max(final.table$Expression)/2) +
-          labs(title=NULL) +
-          theme(plot.title = element_text(hjust = 0.1)) +
-          annotate("segment", x = c(1160, 1160, 1160, 1550, 1550), y = c(-1170, -830, -450, -1020, -610), 
-                   xend = c(1160, 1160, 1160, 1550, 1550), yend = c(-1020, -670, -300, -870, -450), 
-                   arrow = arrow(type = "closed", length = unit(0.03, "npc")))+
-          annotate("segment", x = c(450, 120, 700, 700, 700), y = c(-40, -120, -120, -120, -120), 
-                   xend = c(450, 230, 130, 470, 750), yend = c(-160, -350, -330, -260, -290), colour = "#707070") +
-          annotate("text", x = c(450, 120, 700, 380), y = c(0, -80, -80, -720), 
-                   label = c("Epidermis", "Mesophyll", "Vasculature", "Shoot apex"), 
-                   colour = "#707070", size = 3.5) +
-          annotate("text", x = c(1040, 1000, 990, 990, 1390, 1400, 1400, 1820, 1850, 2250), y = c(-140, -560, -930, -1240, -310, -740, -1105, -350, -960, -650), 
-                   label = c("Late\n GC", "Early\nGC", "Dividing\nGMC", "Early\nGMC", "Late\nHC", "Middle\nHC", "Early\nHC", "SC", "Silica cell", "Interstomatal cell"), 
-                   colour = "#707070", size = 3.5, angle = 90, lineheight = 1)
-    
+        scale_fill_gradient2(low="lightyellow", mid = "red", high="darkblue", midpoint = max(final.table$Expression)/2) +
+        labs(title=NULL) +
+        theme(#axis.text = element_text(colour = "black"),
+          plot.title = element_text(hjust = 0.1)) +
+        annotate("segment", x = c(1160, 1160, 1160, 1550, 1550), y = c(-1170, -830, -450, -1020, -610), 
+                 xend = c(1160, 1160, 1160, 1550, 1550), yend = c(-1020, -670, -300, -870, -450), 
+                 arrow = arrow(type = "closed", length = unit(0.03, "npc")))+
+        annotate("segment", x = c(450, 120, 700, 700, 700), y = c(-40, -120, -120, -120, -120), 
+                 xend = c(450, 230, 130, 470, 750), yend = c(-160, -350, -330, -260, -290), colour = "#707070") +
+        annotate("text", x = c(450, 120, 700, 380), y = c(0, -80, -80, -720), 
+                 label = c("Epidermis", "Mesophyll", "Vasculature", "Shoot apex"), 
+                 colour = "#707070", size = 3.5) +
+        annotate("text", x = c(1040, 1000, 990, 990, 1390, 1400, 1400, 1820, 1850, 2250), y = c(-140, -560, -930, -1240, -310, -740, -1105, -350, -960, -650), 
+                 label = c("Late\n GC", "Early\nGC", "Dividing\nGMC", "Early\nGMC", "Late\nHC", "Middle\nHC", "Early\nHC", "SC", "Silica cell", "Inter-specialized cell"), 
+                 colour = "#707070", size = 3.5, angle = 90, lineheight = 1)
 }
 
 
@@ -82,7 +82,6 @@ featureplot_website <- function(dataset, gene=NULL) {
   
     dt1 <- as.data.frame(read_feather(file_name_all1, col_select = c("cell", gene)))
     rownames(dt1) <- dt1$cell
-    
     dt2 <- as.data.frame(read_feather(file_name_all2, col_select = c("cell", gene)))
     rownames(dt2) <- dt2$cell
     
@@ -151,9 +150,9 @@ featureplot_website <- function(dataset, gene=NULL) {
 
 umapplots_website <- function(dataset) {
   if(dataset == "All cells") {
-    new_data <- label_info_all[,c("umap_1", "umap_2", "labels")]
+    new_data <- label_info_all[,c("umap_1", "umap_2", "annotated")]
     
-    ggplot(new_data, aes(x=umap_1, y=umap_2, colour = labels))+
+    ggplot(new_data, aes(x=umap_1, y=umap_2, colour = annotated))+
       geom_point(size = 1)+
       scale_colour_manual(values = c("#e76254", "#72bcd5", "#aadce0", "#376795", "#ffd06f", "#ffe6b7", "#ef8a47"))+
       theme_classic()+
@@ -179,12 +178,12 @@ umapplots_website <- function(dataset) {
       if(dataset == "Stomatal cell files") {
         new_data <- label_info_stom[,c("umap_1", "umap_2", "stages")]
         
-        ggplot(new_data, aes(x=umap_1, y=umap_2, colour = factor(stages, levels = c("Unknown", "Interstomatal cells", "Stage 0-1", 
-                                                                 "SMCs", "SCs", "Early GMCs", 
+        ggplot(new_data, aes(x=umap_1, y=umap_2, colour = factor(stages, levels = c("Stage 0-2", "Inter-specialized cells",  
+                                                                 "SCs", "Early GMCs", 
                                                                  "Dividing GMCs", "Early GCs", "Late GCs"))))+
           geom_point(size = 1)+
-          scale_colour_manual(values = c("#AECB72", "#78C7B8", "#8CC483",
-                                         "#D8D97A", "#67AFC2", "#538EB9",
+          scale_colour_manual(values = c("#78C7B8", "#8CC483", 
+                                         "#D8D97A", "#538EB9",
                                          "#356493", "#1D4573", "#0A2E57"))+
           theme_classic() +
           guides(colour = guide_legend(override.aes = list(shape = 15, size = 5), nrow = 3))+
@@ -221,8 +220,7 @@ ui <- page_fixed(
   titlePanel("Brachypodium leaf single-cell atlas"),
   
   layout_sidebar(
-    sidebar = sidebar(
-                      textInput("gene", label = "Gene Accession (e.g. BdiBd21-3.1G0240400):", value = "x"),
+    sidebar = sidebar(textInput("gene", label = "Gene Accession (e.g. BdiBd21-3.1G0240400):", value = "x"),
                       br(),
                       br(),
                       br(),
@@ -235,7 +233,8 @@ ui <- page_fixed(
                       br(),
                       "SC = Subsidiary cell"
     ),
-    plotOutput("gene_map", width = "800px", height = "400px") %>% withSpinner(color="#0dc5c1")),
+    plotOutput("gene_map", width = "800px", height = "400px")%>% withSpinner(color="#0dc5c1")),
+   
   
   page_navbar(
     title = "Subset",
@@ -252,7 +251,8 @@ ui <- page_fixed(
   
   br(), br(), br(),
   
-  p("Berg et al.", style = "font-size: 125%;"), 
+  p("Berg et al. 2026", style = "font-size: 125%;"), 
+  #p(a("Berg et al.", href = , ,target = "_blank"), style = "font-size: 125%;"), # the target = "_blank" specifies that the link should open in a new tab
   
   p(a("Stomatal Biology Lab, Institute of Plant Sciences, University of Bern, Switzerland", href = "https://raissiglab.org/", target = "_blank")),
   
@@ -314,6 +314,7 @@ server <- function(input,output) {
   
   
   plots_for_download <- function(identifier){
+    
     print(ggarrange(gene_map_plot(), all_cells_plots(), epi_plots(), stom_plots(), nrow = 4))
   }
   
