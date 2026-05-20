@@ -22,10 +22,6 @@ DimPlot(stomatal_files, cells.highlight = c(gc_sc_cells), sizes.highlight = 0.3)
 
 ###### Prepare input files for MINI-EX -------------------------------------------------------------
 
-### The expressionMatrix points to the gene-to-cell count matrix and can be extracted from the Seurat object using the command below:
-expression.matrix <- as.data.frame(as.matrix(GetAssayData(object = stomatal_files, assay = "RNA", layer = "counts")))
-write.table(expression.matrix, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_matrix.tsv", sep='\t', quote = FALSE)
-
 expression.matrix <- as.data.frame(as.matrix(GetAssayData(object = gc_sc_lineage, assay = "RNA", layer = "counts")))
 write.table(expression.matrix, "E:/Scseq_brachy_dev/GRN_analysis/Mini-EX/new INPUTs/stom_matrix_stages_sub.tsv", sep='\t', quote = FALSE)
 
